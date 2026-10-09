@@ -9,6 +9,7 @@ SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
 BASE_URL = "http://localhost:8765"
 HOST = "x86_64-linux-gnu"
+REPO_URL = "https://github.com/NikolaiRadke/ArduDebug"
 
 def pack(name, entries):
     """Packt (Quelle, Pfad im Archiv)-Paare und liefert die Angaben fuer den Index."""
@@ -24,7 +25,7 @@ def find_deps(obj):
     """Sucht die Tool-Abhaengigkeiten des Original-Cores in installed.json."""
     if isinstance(obj, dict):
         if "toolsDependencies" in obj:
-            return obj["toolsDependencies"]
+            return obj
         obj = list(obj.values())
     if isinstance(obj, list):
         for item in obj:
@@ -33,8 +34,22 @@ def find_deps(obj):
                 return found
     return None
 
+
+def board_names():
+    """Liest alle Board-Namen (<id>.name=...) aus der boards.txt."""
+    names = []
+    for line in (SRC / "boards.txt").read_text().splitlines():
+        key, _, value = line.partition("=")
+        parts = key.strip().split(".")
+        if len(parts) == 2 and parts[1] == "name":
+            names.append({"name": value.strip()})
+    return names
+
+
 OUT.mkdir(exist_ok=True)
-deps = find_deps(json.loads((SRC / "installed.json").read_text()))
+base = find_deps(json.loads((SRC / "installed.json").read_text()))
+deps = base["toolsDependencies"]
+NAME = f"ArduDebug AVR Boards (basiert auf Arduino AVR {base['version']})"
 
 # Core: Kopie ohne tools/ und installed.json, Tool-Pfade auf installierte Tools umbiegen
 stage = OUT / "stage" / f"ardudebug-avr-{VERSION}"
@@ -55,10 +70,10 @@ gdb = pack(f"ardudebug-gdb-{VERSION}-linux64.tar.bz2", [
 own_tools = [{"packager": "ardudebug", "name": n, "version": VERSION}
              for n in ("ardudebug-bridge", "ardudebug-gdb")]
 index = {"packages": [{
-    "name": "ardudebug", "maintainer": "Nikolai", "websiteURL": "https://example.com",
-    "email": "", "help": {"online": "https://example.com"},
-    "platforms": [{"name": "ArduDebug AVR Boards", "architecture": "avr", "version": VERSION,
-                   "category": "Arduino", "boards": [{"name": "Arduino Uno"}],
+    "name": "ardudebug", "maintainer": "Nikolai Radke", "websiteURL": REPO_URL,
+    "email": "kontakt@nikolairadke.de", "help": {"online": REPO_URL},
+    "platforms": [{"name": NAME, "architecture": "avr", "version": VERSION,
+                   "category": "Arduino", "boards": board_names(),
                    "toolsDependencies": deps + own_tools, **core}],
     "tools": [{"name": "ardudebug-bridge", "version": VERSION, "systems": [dict(host=HOST, **bridge)]},
               {"name": "ardudebug-gdb", "version": VERSION, "systems": [dict(host=HOST, **gdb)]}]}]}
