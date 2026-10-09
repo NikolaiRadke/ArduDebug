@@ -2,7 +2,16 @@
 
 Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware** – just the normal USB cable.
 
-> **Status:** early proof of concept. Tested with the Arduino Uno on Linux. Windows support is in progress.
+> **Status:** early proof of concept, tested on Linux. Windows support is in progress.
+
+## Supported boards
+
+| Board | Chip | Status |
+|---|---|---|
+| Arduino Uno | ATmega328P | tested |
+| Arduino Nano (incl. old bootloader) | ATmega328P | tested |
+| Arduino Mega 2560 | ATmega2560 | compiles, not yet tested |
+| Leonardo, Micro and other ATmega32U4 boards | ATmega32U4 | not supported by avr8-stub |
 
 ## How it works
 
