@@ -7,7 +7,7 @@ from pathlib import Path
 VERSION = "0.1.0"
 SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
-BASE_URL = "http://localhost:8765"
+BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/v{VERSION}"
 HOST = "x86_64-linux-gnu"
 REPO_URL = "https://github.com/NikolaiRadke/ArduDebug"
 
@@ -61,11 +61,17 @@ pt.write_text(pt.read_text()
     .replace("{runtime.platform.path}/tools/gdb", "{runtime.tools.ardudebug-gdb.path}"))
 core = pack(f"ardudebug-avr-{VERSION}.tar.bz2", [(stage, stage.name)])
 
-bridge = pack(f"ardudebug-bridge-{VERSION}-linux64.tar.bz2", [
-    (SRC / "tools/bridge/ardudebug-bridge", "ardudebug-bridge/ardudebug-bridge"),
-    (SRC / "tools/bridge/dummy.cfg", "ardudebug-bridge/dummy.cfg")])
-gdb = pack(f"ardudebug-gdb-{VERSION}-linux64.tar.bz2", [
-    (SRC / "tools/gdb/bin/avr-gdb", "ardudebug-gdb/bin/avr-gdb")])
+# Pro System: Kennung im Index, Namenszusatz der Archive, Dateiendung
+HOSTS = [("x86_64-linux-gnu", "linux64", ""), ("x86_64-mingw32", "windows64", ".exe")]
+bridge_systems, gdb_systems = [], []
+for host, tag, ext in HOSTS:
+    b = pack(f"ardudebug-bridge-{VERSION}-{tag}.tar.bz2", [
+        (SRC / f"tools/bridge/ardudebug-bridge{ext}", f"ardudebug-bridge/ardudebug-bridge{ext}"),
+        (SRC / "tools/bridge/dummy.cfg", "ardudebug-bridge/dummy.cfg")])
+    g = pack(f"ardudebug-gdb-{VERSION}-{tag}.tar.bz2", [
+        (SRC / f"tools/gdb/bin/avr-gdb{ext}", f"ardudebug-gdb/bin/avr-gdb{ext}")])
+    bridge_systems.append(dict(host=host, **b))
+    gdb_systems.append(dict(host=host, **g))
 
 own_tools = [{"packager": "ardudebug", "name": n, "version": VERSION}
              for n in ("ardudebug-bridge", "ardudebug-gdb")]
@@ -75,8 +81,8 @@ index = {"packages": [{
     "platforms": [{"name": NAME, "architecture": "avr", "version": VERSION,
                    "category": "Arduino", "boards": board_names(),
                    "toolsDependencies": deps + own_tools, **core}],
-    "tools": [{"name": "ardudebug-bridge", "version": VERSION, "systems": [dict(host=HOST, **bridge)]},
-              {"name": "ardudebug-gdb", "version": VERSION, "systems": [dict(host=HOST, **gdb)]}]}]}
+    "tools": [{"name": "ardudebug-bridge", "version": VERSION, "systems": bridge_systems},
+              {"name": "ardudebug-gdb", "version": VERSION, "systems": gdb_systems}]}]}
 (OUT / "package_ardudebug_index.json").write_text(json.dumps(index, indent=2))
 print("Fertig:", OUT / "package_ardudebug_index.json")
 print("Abhaengigkeiten:", ", ".join(f"{d['name']} {d['version']}" for d in deps + own_tools))

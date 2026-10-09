@@ -146,6 +146,7 @@ debug.toolchain.path={runtime.platform.path}/tools/gdb/bin/
 debug.toolchain.prefix=avr-
 debug.server=openocd
 debug.server.openocd.path={runtime.platform.path}/tools/bridge/ardudebug-bridge
+debug.server.openocd.path.windows={runtime.platform.path}/tools/bridge/ardudebug-bridge.exe
 debug.server.openocd.script={runtime.platform.path}/tools/bridge/dummy.cfg
 debug.cortex-debug.custom.debuggerArgs.0=-b
 debug.cortex-debug.custom.debuggerArgs.1=115200
