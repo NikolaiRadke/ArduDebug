@@ -41,6 +41,10 @@ Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's 
 4. Click left of a line number in `loop()` to set a breakpoint (red dot).
 5. Click the debug button. The program stops at the start of `loop()`; press *Continue* (F5) to run to your breakpoint.
 
+> [!TIP]
+> - Global variables are easiest to inspect in the *Watch* view: click *+* and enter the variable name.
+> - Close the Serial Monitor before debugging, and stop the debug session before uploading.
+
 ### Updating
 
 Updates appear in the Boards Manager. If a new version doesn't show up, the IDE is still using a cached package list: delete `package_ardudebug_index.json` in your Arduino15 folder and restart the IDE.
@@ -54,16 +58,6 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
-
-## Usage
-
-1. Select *Tools → Board → ArduDebug AVR Boards → Arduino Uno*.
-2. Enable *Sketch → Optimize for Debugging* and upload your sketch.
-3. Set breakpoints and press the debug button.
-
-Tips:
-- If breakpoints appear as hollow grey circles, they are deactivated. Click *Activate Breakpoints* in the Breakpoints view.
-- Global variables are easiest to inspect in the *Watch* view.
 
 ## Limitations
 
