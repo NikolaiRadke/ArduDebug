@@ -1,4 +1,4 @@
-![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner.png)
+![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner_2.png)
 # ArduDebug
 
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
