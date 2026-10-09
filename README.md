@@ -1,6 +1,11 @@
+![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner.png)
 # ArduDebug
 
-Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
+Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
+
+🆕 What's new?  
+* **09.10.2026** Release **V0.1.1** with Linux und Windows support.  
+    -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
 
