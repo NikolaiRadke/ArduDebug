@@ -15,6 +15,10 @@
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+  Modified for ArduDebug (https://github.com/NikolaiRadke/ArduDebug)
+  by Nikolai Radke, 2026-10-09: calls debug_init() of avr8-stub
+  when built with ARDUDEBUG (Sketch > Optimize for Debugging).
 */
 
 #include <Arduino.h>

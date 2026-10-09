@@ -28,6 +28,13 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
+ *
+ * Modified for ArduDebug (https://github.com/NikolaiRadke/ArduDebug)
+ * by Nikolai Radke:
+ *  - 2026-10-09: Bounds check in packet receive (handle_exception).
+ *    Newer GDB versions send a qSupported packet longer than
+ *    AVR8_MAX_BUFF, which overflowed the buffer and corrupted the
+ *    saved registers.
  */
 
 #include <avr/io.h>
@@ -1115,8 +1122,8 @@ static void handle_exception(void)
 			for (pkt_checksum = 0, b = getDebugChar();
 				 b != '#'; b = getDebugChar())
 			{
-				/* ArduDebug: Puffer nicht ueberlaufen lassen, Rest verwerfen.
-				   Die Pruefsumme zaehlt trotzdem alle Zeichen. */
+				/* ArduDebug: do not overflow the buffer, drop the rest.
+				   The checksum still covers all characters. */
 				if (gdb_ctx->buff_sz < AVR8_MAX_BUFF)
 					gdb_ctx->buff[gdb_ctx->buff_sz++] = b;
 				pkt_checksum += b;
