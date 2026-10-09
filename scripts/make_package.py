@@ -4,7 +4,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
 BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/V{VERSION}"

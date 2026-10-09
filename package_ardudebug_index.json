@@ -12,7 +12,7 @@
         {
           "name": "ArduDebug AVR Boards (basiert auf Arduino AVR 1.8.8)",
           "architecture": "avr",
-          "version": "0.1.0",
+          "version": "0.1.1",
           "category": "Arduino",
           "boards": [
             {
@@ -41,36 +41,36 @@
             {
               "packager": "ardudebug",
               "name": "ardudebug-bridge",
-              "version": "0.1.0"
+              "version": "0.1.1"
             },
             {
               "packager": "ardudebug",
               "name": "ardudebug-gdb",
-              "version": "0.1.0"
+              "version": "0.1.1"
             }
           ],
-          "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.0/ardudebug-avr-0.1.0.tar.bz2",
-          "archiveFileName": "ardudebug-avr-0.1.0.tar.bz2",
-          "checksum": "SHA-256:42c2e940b18dc14708e458e9f2924409aa07b699efe9a67feed779fe7b47c11f",
-          "size": "7275506"
+          "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.1/ardudebug-avr-0.1.1.tar.bz2",
+          "archiveFileName": "ardudebug-avr-0.1.1.tar.bz2",
+          "checksum": "SHA-256:35f8a2162be4d3c6e392065a5508388a407265be2f039efb5e8362557d539c87",
+          "size": "7275741"
         }
       ],
       "tools": [
         {
           "name": "ardudebug-bridge",
-          "version": "0.1.0",
+          "version": "0.1.1",
           "systems": [
             {
               "host": "x86_64-linux-gnu",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.0/ardudebug-bridge-0.1.0-linux64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.0-linux64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.1/ardudebug-bridge-0.1.1-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.1-linux64.tar.bz2",
               "checksum": "SHA-256:da21196a4b0003f6b0011961be3744d7e7057d53d5c8ba618e9836b8d1d2e5af",
               "size": "2466745"
             },
             {
               "host": "x86_64-mingw32",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.0/ardudebug-bridge-0.1.0-windows64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.0-windows64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.1/ardudebug-bridge-0.1.1-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.1-windows64.tar.bz2",
               "checksum": "SHA-256:1d3817222ffa7ceec6d504ff6b46b8fdf62fb3a0ec9081fa426203425aef2078",
               "size": "1171028"
             }
@@ -78,19 +78,19 @@
         },
         {
           "name": "ardudebug-gdb",
-          "version": "0.1.0",
+          "version": "0.1.1",
           "systems": [
             {
               "host": "x86_64-linux-gnu",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.0/ardudebug-gdb-0.1.0-linux64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.0-linux64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.1/ardudebug-gdb-0.1.1-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.1-linux64.tar.bz2",
               "checksum": "SHA-256:a3d097e7453888152f6cc7c5b94a4da05c4b8b4af5e5c902b64d1426d041f736",
               "size": "2859993"
             },
             {
               "host": "x86_64-mingw32",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.0/ardudebug-gdb-0.1.0-windows64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.0-windows64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.1/ardudebug-gdb-0.1.1-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.1-windows64.tar.bz2",
               "checksum": "SHA-256:2e66d1f564c2fc87c76ae4e48f0b9586eff361bafdb309fcdadbb4e39d836c91",
               "size": "3531602"
             }
