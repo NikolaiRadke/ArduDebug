@@ -1,6 +1,6 @@
 # ArduDebug
 
-Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware** – just the normal USB cable.
+Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 ## Supported boards
 
