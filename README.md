@@ -6,12 +6,13 @@ Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's 
 
 ## Supported boards
 
-| Board | Chip | Status |
+| Chip | Boards | Status |
 |---|---|---|
-| Arduino Uno | ATmega328P | tested |
-| Arduino Nano (incl. old bootloader) | ATmega328P | tested |
-| Arduino Mega 2560 | ATmega2560 | compiles, not yet tested |
-| Leonardo, Micro and other ATmega32U4 boards | ATmega32U4 | not supported by avr8-stub |
+| ATmega328P | Uno, Nano (incl. old bootloader) | tested |
+| ATmega328P | Pro Mini, Mini, Uno WiFi Rev1, Duemilanove, … | should work, not yet tested |
+| ATmega2560/1280 | Mega 2560, Mega ADK | compiles, not yet tested |
+| ATmega32U4 | Leonardo, Micro, Yún, Esplora, … | not supported by avr8-stub |
+| ATmega168, ATmega8, ATtiny | Diecimila (168), Gemma, … | not supported by avr8-stub |
 
 ## How it works
 
