@@ -2,8 +2,6 @@
 
 Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware** – just the normal USB cable.
 
-> **Status:** early proof of concept, tested on Linux. Windows support is in progress.
-
 ## Supported boards
 
 | Board | Chip | Status |
