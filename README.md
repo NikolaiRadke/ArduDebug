@@ -21,7 +21,8 @@ Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's 
 
 ## Installation
 
-*Coming soon:* ArduDebug will be installable via the Boards Manager with an additional URL.
+*Coming soon:* ArduDebug will be installable via the Boards Manager with an additional URL.  
+``` https://raw.githubusercontent.com/NikolaiRadke/ArduDebug/main/package_ardudebug_index.json ```
 
 ## Usage
 
