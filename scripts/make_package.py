@@ -7,7 +7,7 @@ from pathlib import Path
 VERSION = "0.1.0"
 SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
-BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/v{VERSION}"
+BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/V{VERSION}"
 HOST = "x86_64-linux-gnu"
 REPO_URL = "https://github.com/NikolaiRadke/ArduDebug"
 
