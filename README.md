@@ -18,11 +18,44 @@ Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's 
 - **avr8-stub** (by Jan Dolinay) runs on the Uno and speaks the GDB protocol over the serial line.
 - The stub is built into the core and only included when *Sketch → Optimize for Debugging* is enabled. Your sketch needs no debug code.
 - A small **bridge** program, started by the IDE, finds the Uno automatically and connects GDB to it.
-
 ## Installation
 
-*Coming soon:* ArduDebug will be installable via the Boards Manager with an additional URL.  
-``` https://raw.githubusercontent.com/NikolaiRadke/ArduDebug/main/package_ardudebug_index.json ```
+### Requirements
+
+- Arduino IDE 2.3 or newer (Linux or Windows)
+- An Arduino Uno or Nano and a USB cable – nothing else
+
+### Install ArduDebug
+
+1. Open *File → Preferences*.
+2. Add this URL to *Additional boards manager URLs* (one URL per line if there are already others):
+```
+   https://raw.githubusercontent.com/NikolaiRadke/ArduDebug/main/package_ardudebug_index.json
+```
+3. Open *Tools → Board → Boards Manager*, search for **ArduDebug** and click *Install*.
+   ArduDebug brings everything it needs, including its own GDB.
+
+### First test
+
+1. Select *Tools → Board → ArduDebug AVR Boards → Arduino Uno* (or *Nano*) and the port.
+2. Open the *Blink* example and enable *Sketch → Optimize for Debugging*.
+3. Upload the sketch.
+4. Click left of a line number in `loop()` to set a breakpoint (red dot).
+5. Click the debug button. The program stops at the start of `loop()`; press *Continue* (F5) to run to your breakpoint.
+
+### Updating
+
+Updates appear in the Boards Manager. If a new version doesn't show up, the IDE is still using a cached package list: delete `package_ardudebug_index.json` in your Arduino15 folder and restart the IDE.
+
+- Linux: `~/.arduino15`
+- Windows: `%LOCALAPPDATA%\Arduino15`
+
+### Troubleshooting
+
+- **"Port … busy" or "Access denied":** another program is using the port. Close the Serial Monitor. On Windows, also check the Task Manager (*Details*) for a leftover `ardudebug-bridge.exe` and end it.
+- **Upload fails during debugging:** stop the debug session first, then upload.
+- **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
+- **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
 
 ## Usage
 
