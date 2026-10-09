@@ -1115,7 +1115,10 @@ static void handle_exception(void)
 			for (pkt_checksum = 0, b = getDebugChar();
 				 b != '#'; b = getDebugChar())
 			{
-				gdb_ctx->buff[gdb_ctx->buff_sz++] = b;
+				/* ArduDebug: Puffer nicht ueberlaufen lassen, Rest verwerfen.
+				   Die Pruefsumme zaehlt trotzdem alle Zeichen. */
+				if (gdb_ctx->buff_sz < AVR8_MAX_BUFF)
+					gdb_ctx->buff[gdb_ctx->buff_sz++] = b;
 				pkt_checksum += b;
 				WDTRESET();
 			}
