@@ -13,7 +13,7 @@ Breakpoint debugging for the Arduino Uno in the Arduino IDE 2.x, with the IDE's 
 
 ## How it works
 
-- **avr8-stub** (by Jan Dolinay) runs on the Uno and speaks the GDB protocol over the serial line.
+- **avr8-stub** (by Jan Dolinay) runs on Uno/Nano and speaks the GDB protocol over the serial line.
 - The stub is built into the core and only included when *Sketch → Optimize for Debugging* is enabled. Your sketch needs no debug code.
 - A small **bridge** program, started by the IDE, finds the Uno automatically and connects GDB to it.
 ## Installation
