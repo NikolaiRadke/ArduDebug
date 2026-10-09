@@ -88,3 +88,12 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - [avr8-stub / avr_debug](https://github.com/jdolinay/avr_debug) by Jan Dolinay
 - [Arduino AVR Boards](https://github.com/arduino/ArduinoCore-avr) by Arduino
 - [go.bug.st/serial](https://github.com/bugst/go-serial) by Cristian Maglie (BSD-3-Clause)
+
+## 💙 Support ArduDebug
+
+ArduDebug is free and open source. If it saved your day, consider buying me a coffee! ☕
+
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/NikolaiRadke?style=for-the-badge&logo=github&color=ea4aaa)](https://github.com/sponsors/NikolaiRadke)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/nikolairadke)
+
+Every contribution helps keep this project alive! 🚀
