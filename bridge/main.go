@@ -88,8 +88,9 @@ func main() {
 	defer conn.Close()
 
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
+	openTrace()
 	done := make(chan struct{}, 2)
-	go func() { io.Copy(ser, conn); done <- struct{}{} }()
-	go func() { forwardFiltered(conn, ser); done <- struct{}{} }()
+	go func() { io.Copy(traced{ser, "GDB->"}, conn); done <- struct{}{} }()
+	go func() { forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}); done <- struct{}{} }()
 	<-done
 }

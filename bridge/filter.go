@@ -4,13 +4,12 @@ import (
 	"bufio"
 	"encoding/hex"
 	"io"
-	"os"
 )
 
 // forwardFiltered reicht die Daten vom Stub an GDB weiter. Ausgabepakete
 // des Programms ($O<hex>#xx) werden abgefangen und als Text ins Terminal
 // der Bridge geschrieben, so wie der serielle Monitor sie zeigen wuerde.
-func forwardFiltered(gdb io.Writer, stub io.Reader) {
+func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer) {
 	r := bufio.NewReader(stub)
 	for {
 		b, err := r.ReadByte()
@@ -37,7 +36,7 @@ func forwardFiltered(gdb io.Writer, stub io.Reader) {
 		}
 		payload := pkt[1 : len(pkt)-3]
 		if text, ok := outputText(payload); ok {
-			os.Stdout.Write(text)
+			out.Write(text)
 			continue
 		}
 		gdb.Write(pkt)

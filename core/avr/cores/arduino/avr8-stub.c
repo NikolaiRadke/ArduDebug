@@ -2124,8 +2124,10 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 				gdb_ctx->target_running = 0;	/* stopped on a breakpoint or after step */
 				/* need to send state as we already read the command */
 				gdb_send_state(GDB_SIGINT);
-				/* UART ISR will be executed when we exit and handle further communication */
-				gdb_disable_swinterrupt();				
+				/* ArduDebug: stay stopped and talk to GDB right here. Returning would
+				   let the target run on until GDB's next byte arrives, so GDB would
+				   see a different PC than reported above. */
+				handle_exception();
 				goto out;
 			}			
 		}
