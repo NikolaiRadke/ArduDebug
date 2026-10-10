@@ -92,3 +92,10 @@ index = {"packages": [{
 (OUT / "package_ardudebug_index.json").write_text(json.dumps(index, indent=2))
 print("Fertig:", OUT / "package_ardudebug_index.json")
 print("Abhaengigkeiten:", ", ".join(f"{d['name']} {d['version']}" for d in deps + own_tools))
+
+# Paketbeschreibung gleich ins Repo kopieren (fuer GitHub)
+shutil.copy(OUT / "package_ardudebug_index.json", SRC.parents[1] / "package_ardudebug_index.json")
+# Kontrolle: enthaelt das Core-Archiv die Debug-Aenderungen?
+with tarfile.open(OUT / f"ardudebug-avr-{VERSION}.tar.bz2") as t:
+    hs0 = t.extractfile(f"ardudebug-avr-{VERSION}/cores/arduino/HardwareSerial0.cpp").read()
+print("Kontrolle HardwareSerial0.cpp:", "OK" if b"!defined(ARDUDEBUG)" in hs0 else "FEHLT!")
