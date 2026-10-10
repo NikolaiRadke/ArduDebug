@@ -74,6 +74,8 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
+- **After *Pause*, you are inside `delay()` or other core code:** that's where the program spends most of its time. Use *Step Out* (Shift+F11) to get back to your sketch.
+- **Reporting a problem:** please attach `ardudebug-bridge.log` from your temp folder (Linux/macOS: `/tmp`, Windows: `%TEMP%`). It records the communication of the last debug session.
 
 ## Limitations
 

@@ -12,7 +12,7 @@
         {
           "name": "ArduDebug AVR Boards (basiert auf Arduino AVR 1.8.8)",
           "architecture": "avr",
-          "version": "0.1.4",
+          "version": "0.1.5",
           "category": "Arduino",
           "boards": [
             {
@@ -41,84 +41,84 @@
             {
               "packager": "ardudebug",
               "name": "ardudebug-bridge",
-              "version": "0.1.4"
+              "version": "0.1.5"
             },
             {
               "packager": "ardudebug",
               "name": "ardudebug-gdb",
-              "version": "0.1.4"
+              "version": "0.1.5"
             }
           ],
-          "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-avr-0.1.4.tar.bz2",
-          "archiveFileName": "ardudebug-avr-0.1.4.tar.bz2",
-          "checksum": "SHA-256:23c1d997d95d23288b695728ac10718eaedacfc234fa969450afefcc0d709649",
-          "size": "7279201"
+          "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-avr-0.1.5.tar.bz2",
+          "archiveFileName": "ardudebug-avr-0.1.5.tar.bz2",
+          "checksum": "SHA-256:a081d2bc22b4bdb4e36d94a6bd47d7a8793c0301d1c969440f155ccd1a2c4ffb",
+          "size": "7280789"
         }
       ],
       "tools": [
         {
           "name": "ardudebug-bridge",
-          "version": "0.1.4",
+          "version": "0.1.5",
           "systems": [
             {
               "host": "x86_64-linux-gnu",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-bridge-0.1.4-linux64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.4-linux64.tar.bz2",
-              "checksum": "SHA-256:24f7cb4138c3950ad4ad88b8d932e15cefa2b9a267869cdb1c5263a73752d26d",
-              "size": "1125993"
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-bridge-0.1.5-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.5-linux64.tar.bz2",
+              "checksum": "SHA-256:f4984a619ecc530e88a34204bc2902eebccd2f3b6fb23a6161e4fd7b91d5b8f0",
+              "size": "1127330"
             },
             {
               "host": "x86_64-mingw32",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-bridge-0.1.4-windows64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.4-windows64.tar.bz2",
-              "checksum": "SHA-256:ad1af34f185cb1f7608f77169a20a532bd9dd98d785d046cda77e32f7c28bbcf",
-              "size": "1176165"
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-bridge-0.1.5-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.5-windows64.tar.bz2",
+              "checksum": "SHA-256:d9df825f426b1bb9639525b1cbf33046dbd579dd7351320e95d7934aa5cbd013",
+              "size": "1184338"
             },
             {
               "host": "x86_64-apple-darwin",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-bridge-0.1.4-macos-x86_64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.4-macos-x86_64.tar.bz2",
-              "checksum": "SHA-256:4aba68cfe400e2ed56702accbbe3abdd47bcaf5b4caa119901043a5b4799319f",
-              "size": "1141269"
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-bridge-0.1.5-macos-x86_64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.5-macos-x86_64.tar.bz2",
+              "checksum": "SHA-256:631b36a7d266665dd9b477f6a0f60867ceab57c18a71eb2d11a78b98fd0e62cc",
+              "size": "1144460"
             },
             {
               "host": "arm64-apple-darwin",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-bridge-0.1.4-macos-arm64.tar.bz2",
-              "archiveFileName": "ardudebug-bridge-0.1.4-macos-arm64.tar.bz2",
-              "checksum": "SHA-256:e0ae89ed3a5c8e42d4601f488d072cba4cbf58df0ebb5dad1a2b4c9c4cde1882",
-              "size": "1056893"
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-bridge-0.1.5-macos-arm64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-0.1.5-macos-arm64.tar.bz2",
+              "checksum": "SHA-256:706c2522e5dee6bc3f50b926ea2f5ef1b48dce59bc2ee8a50f8bea0df4a7d65b",
+              "size": "1060014"
             }
           ]
         },
         {
           "name": "ardudebug-gdb",
-          "version": "0.1.4",
+          "version": "0.1.5",
           "systems": [
             {
               "host": "x86_64-linux-gnu",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-gdb-0.1.4-linux64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.4-linux64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-gdb-0.1.5-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.5-linux64.tar.bz2",
               "checksum": "SHA-256:13c47448a4e1c0fe523a996b4904292067be9d5f43653e9ed28bac003300bbdd",
               "size": "3886219"
             },
             {
               "host": "x86_64-mingw32",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-gdb-0.1.4-windows64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.4-windows64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-gdb-0.1.5-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.5-windows64.tar.bz2",
               "checksum": "SHA-256:d0f9fa97e817f0b176ec3f443988b4c3c3d065782722643885db81cc38815037",
               "size": "3531248"
             },
             {
               "host": "x86_64-apple-darwin",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-gdb-0.1.4-macos-x86_64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.4-macos-x86_64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-gdb-0.1.5-macos-x86_64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.5-macos-x86_64.tar.bz2",
               "checksum": "SHA-256:149fc8300240e1c4f86cc3c5a69871ca6ac3bf469620ea83de765b878e2285a8",
               "size": "3423628"
             },
             {
               "host": "arm64-apple-darwin",
-              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.4/ardudebug-gdb-0.1.4-macos-arm64.tar.bz2",
-              "archiveFileName": "ardudebug-gdb-0.1.4-macos-arm64.tar.bz2",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.5/ardudebug-gdb-0.1.5-macos-arm64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-0.1.5-macos-arm64.tar.bz2",
               "checksum": "SHA-256:fe8d4811885e25791da0b829f1941ae8de8fba0006c64d4ad8fbc055bf79fbfd",
               "size": "3143805"
             }
