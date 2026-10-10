@@ -655,6 +655,13 @@ volatile uint8_t debug_pause_req;
 /* ArduDebug: stack pointer inside debug_pause_point(); the INT0 handler only
    stops once the program has returned from there (SP above this value). */
 static volatile uint16_t debug_pause_sp;
+/* ArduDebug: Cortex-Debug 1.5.1 keeps only the first symbol per address. The
+   first variable in .data and in .bss shares its address with the section
+   symbols and would be missing from the "Global" list. These two bytes take
+   the first place in each section (plain .data/.bss come before .data.* and
+   .bss.* in the linker script). debug_init() uses them so they are kept. */
+static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
+static volatile uint8_t debug_bss_pad __attribute__((section(".bss")));
 static void gdb_send_reply(const char *reply);
 static bool_t gdb_parse_packet(const uint8_t *buff);
 static void gdb_send_state(uint8_t signo);
@@ -901,6 +908,8 @@ static unsigned char regs[GDB_NUMREGBYTES];	/* Copy of all registers */
 /* Initialize the debug driver. */
 void debug_init(void)
 {
+	debug_bss_pad = debug_data_pad;	/* keep the pads, see above */
+
 	/* Init gdb context */
 	gdb_ctx = &ctx;
 	gdb_ctx->sp = 0;
