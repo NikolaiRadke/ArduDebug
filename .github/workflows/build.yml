@@ -1,0 +1,49 @@
+# Baut die ArduDebug-Bridge fuer alle Systeme.
+# Start von Hand: GitHub -> Actions -> Build -> Run workflow
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bridge-linux-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: bridge/go.mod
+          cache-dependency-path: bridge/go.sum
+      - name: Build
+        working-directory: bridge
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o out/linux64/ardudebug-bridge
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o out/windows64/ardudebug-bridge.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridge-linux-windows
+          path: bridge/out/
+
+  bridge-macos:
+    # Echter Mac: die Port-Erkennung braucht unter macOS IOKit (cgo)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: bridge/go.mod
+          cache-dependency-path: bridge/go.sum
+      - name: Build
+        working-directory: bridge
+        env:
+          CGO_ENABLED: "1"
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
+        run: |
+          GOARCH=arm64 CC="clang -arch arm64"  go build -ldflags="-s -w" -o out/macos-arm64/ardudebug-bridge
+          GOARCH=amd64 CC="clang -arch x86_64" go build -ldflags="-s -w" -o out/macos-x86_64/ardudebug-bridge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridge-macos
+          path: bridge/out/
