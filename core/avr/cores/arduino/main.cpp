@@ -41,9 +41,6 @@ int main(void)
 {
 	init();
 	initVariant();
-#ifdef ARDUDEBUG
-	debug_init();
-#endif
 
 #if defined(USBCON)
 	USBDevice.attach();

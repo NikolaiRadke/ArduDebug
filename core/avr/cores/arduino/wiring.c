@@ -21,6 +21,9 @@
 */
 
 #include "wiring_private.h"
+#ifdef ARDUDEBUG
+#include "avr8-stub.h"
+#endif
 
 // the prescaler is set so that timer0 ticks every 64 clock cycles, and the
 // the overflow handler is called every 256 ticks.
@@ -388,5 +391,12 @@ void init()
 	UCSRB = 0;
 #elif defined(UCSR0B)
 	UCSR0B = 0;
+#endif
+
+#ifdef ARDUDEBUG
+	// ArduDebug: start the debug stub here, after the UART was released
+	// above, so that every sketch calling init() can be debugged, also
+	// sketches with their own main()
+	debug_init();
 #endif
 }
