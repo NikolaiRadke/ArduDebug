@@ -23,6 +23,10 @@ jobs:
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
+      AR: ar
+      RANLIB: ranlib
+      NM: nm
+      STRIP: strip
       MACOSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - name: Werkzeuge (Linux)
