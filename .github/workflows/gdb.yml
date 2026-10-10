@@ -8,6 +8,7 @@ on:
 env:
   GDB_VERSION: "17.2"
   GMP_VERSION: "6.3.0"
+  MPFR_VERSION: "4.2.1"
 
 jobs:
   gdb-unix:
@@ -33,12 +34,18 @@ jobs:
           tar xf gmp-$GMP_VERSION.tar.xz && cd gmp-$GMP_VERSION
           ./configure --prefix=$GITHUB_WORKSPACE/deps --disable-shared --enable-static --disable-assembly ${{ matrix.host }}
           make -j4 && make install
+      - name: MPFR statisch bauen
+        run: |
+          curl -sSLO https://ftp.gnu.org/gnu/mpfr/mpfr-$MPFR_VERSION.tar.xz
+          tar xf mpfr-$MPFR_VERSION.tar.xz && cd mpfr-$MPFR_VERSION
+          ./configure --prefix=$GITHUB_WORKSPACE/deps --disable-shared --enable-static --with-gmp=$GITHUB_WORKSPACE/deps ${{ matrix.host }}
+          make -j4 && make install
       - name: GDB bauen
         run: |
           curl -sSLO https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.xz
           tar xf gdb-$GDB_VERSION.tar.xz && mkdir build && cd build
           ../gdb-$GDB_VERSION/configure --target=avr --prefix=$GITHUB_WORKSPACE/inst ${{ matrix.host }} \
-            --with-gmp=$GITHUB_WORKSPACE/deps --without-mpfr --without-python --without-expat \
+            --with-gmp=$GITHUB_WORKSPACE/deps --with-mpfr=$GITHUB_WORKSPACE/deps --without-python --without-expat \
             --without-lzma --without-zstd --without-babeltrace --without-debuginfod \
             --disable-tui --disable-nls --disable-werror
           make -j4 all-gdb MAKEINFO=true && make install-gdb MAKEINFO=true
