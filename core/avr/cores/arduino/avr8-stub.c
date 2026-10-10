@@ -36,6 +36,9 @@
  *    AVR8_MAX_BUFF, which overflowed the buffer and corrupted the
  *    saved registers.
  *  - 2026-10-10: debug_write() sends output without appending "\n".
+ *  - 2026-10-10: Ctrl-C while RAM breakpoints are active really stops the
+ *    target now. Before, it ran on after reporting the stop, and GDB
+ *    crashed on the next step (internal-error in infrun.c).
  */
 
 #include <avr/io.h>
