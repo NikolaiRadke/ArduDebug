@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **09.10.2026** Release **V0.1.1** with Linux und Windows support.  
+* **10.10.2026** Release **V0.1.2** with Linux, Windows and new macOS support.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -83,8 +83,9 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 
 ## License
 
-- `core/avr`: LGPL-3.0-or-later (see `COPYING.LESSER` and `COPYING`). Based on the Arduino AVR core (LGPL-2.1-or-later) and avr8-stub (LGPL-3.0-or-later).
-- `bridge` and `scripts`: MIT (see `LICENSE` in each folder).
+- The release packages contain binaries of **avr-gdb** (GNU GDB 17.2, GPL-3.0-or-later):
+  - Linux and macOS: built from the [GNU GDB](https://www.gnu.org/software/gdb/) sources with statically linked [GMP](https://gmplib.org/) and [MPFR](https://www.mpfr.org/) (LGPL), see `.github/workflows/gdb.yml`.
+  - Windows: from the [AVR-GCC builds by Zak Kemble](https://github.com/ZakKemble/avr-gcc-build) (16.1.0).
 
 ## Credits
 

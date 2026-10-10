@@ -2,3 +2,4 @@ dist/
 bridge/ardudebug-bridge
 bridge/*.exe
 core/avr/tools/
+tools/

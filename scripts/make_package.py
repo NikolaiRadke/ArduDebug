@@ -4,7 +4,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
 BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/V{VERSION}"
@@ -61,15 +61,21 @@ pt.write_text(pt.read_text()
     .replace("{runtime.platform.path}/tools/gdb", "{runtime.tools.ardudebug-gdb.path}"))
 core = pack(f"ardudebug-avr-{VERSION}.tar.bz2", [(stage, stage.name)])
 
-# Pro System: Kennung im Index, Namenszusatz der Archive, Dateiendung
-HOSTS = [("x86_64-linux-gnu", "linux64", ""), ("x86_64-mingw32", "windows64", ".exe")]
+# Fertige Programme pro System liegen in ardudebug/tools/<tag>/
+TOOLS = SRC.parents[1] / "tools"
+DUMMY = SRC.parents[1] / "bridge/dummy.cfg"
+# Pro System: Kennung im Index, Ordner/Namenszusatz, Dateiendung
+HOSTS = [("x86_64-linux-gnu",    "linux64",      ""),
+         ("x86_64-mingw32",      "windows64",    ".exe"),
+         ("x86_64-apple-darwin", "macos-x86_64", ""),
+         ("arm64-apple-darwin",  "macos-arm64",  "")]
 bridge_systems, gdb_systems = [], []
 for host, tag, ext in HOSTS:
     b = pack(f"ardudebug-bridge-{VERSION}-{tag}.tar.bz2", [
-        (SRC / f"tools/bridge/ardudebug-bridge{ext}", f"ardudebug-bridge/ardudebug-bridge{ext}"),
-        (SRC / "tools/bridge/dummy.cfg", "ardudebug-bridge/dummy.cfg")])
+        (TOOLS / tag / f"ardudebug-bridge{ext}", f"ardudebug-bridge/ardudebug-bridge{ext}"),
+        (DUMMY, "ardudebug-bridge/dummy.cfg")])
     g = pack(f"ardudebug-gdb-{VERSION}-{tag}.tar.bz2", [
-        (SRC / f"tools/gdb/bin/avr-gdb{ext}", f"ardudebug-gdb/bin/avr-gdb{ext}")])
+        (TOOLS / tag / f"avr-gdb{ext}", f"ardudebug-gdb/bin/avr-gdb{ext}")])
     bridge_systems.append(dict(host=host, **b))
     gdb_systems.append(dict(host=host, **g))
 
