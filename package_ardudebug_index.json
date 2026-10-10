@@ -51,8 +51,8 @@
           ],
           "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V0.1.3/ardudebug-avr-0.1.3.tar.bz2",
           "archiveFileName": "ardudebug-avr-0.1.3.tar.bz2",
-          "checksum": "SHA-256:9f949988fff34995672a410d7af1299358a1397f927ada4fde010a563a4ee6bb",
-          "size": "7280452"
+          "checksum": "SHA-256:917cf166de4042505258cf3270ec0d80804f63a5609f2b77193a7ebb77043d11",
+          "size": "7280435"
         }
       ],
       "tools": [
