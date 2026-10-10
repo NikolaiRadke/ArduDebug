@@ -52,6 +52,14 @@ int main(void)
 	setup();
     
 	for (;;) {
+#ifdef ARDUDEBUG
+		if (debug_pause_req == 1) {
+			debug_pause_point();	// pause requested: stop before loop()
+			asm volatile ("nop");	// the stop lands here, in main(), not at the
+						// start of an inlined loop() (GDB would then
+						// fake the first step and report it oddly)
+		}
+#endif
 		loop();
 		if (serialEventRun) serialEventRun();
 	}

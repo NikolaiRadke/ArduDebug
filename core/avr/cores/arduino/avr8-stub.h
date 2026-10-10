@@ -283,6 +283,15 @@ void debug_init(void);
 */
 void breakpoint(void);
 
+/**
+ * ArduDebug: pause handling. The first pause request from the debugger sets
+ * debug_pause_req to 1; main() then calls debug_pause_point() before the next
+ * loop() pass, so the program stops in the sketch rather than inside delay().
+ * debug_pause_point() arms the stop (2), which then happens in the INT0 handler.
+ */
+extern volatile uint8_t debug_pause_req;
+void debug_pause_point(void);
+
 
 /**
  * Send text message to gdb console.

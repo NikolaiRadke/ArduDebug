@@ -647,6 +647,14 @@ static inline void gdb_disable_swinterrupt();
 static uint8_t hex2nib(uint8_t hex);
 static uint8_t parse_hex(const uint8_t *buff, uint32_t *hex);
 static void gdb_send_buff(const uint8_t *buff, uint8_t sz);
+
+/* ArduDebug: set to 1 by the first pause request (Ctrl-C) while the program
+   runs. main() checks it before each loop() pass and calls debug_pause_point(),
+   which sets it to 2; the INT0 handler then stops and sets it back to 0. */
+volatile uint8_t debug_pause_req;
+/* ArduDebug: stack pointer inside debug_pause_point(); the INT0 handler only
+   stops once the program has returned from there (SP above this value). */
+static volatile uint16_t debug_pause_sp;
 static void gdb_send_reply(const char *reply);
 static bool_t gdb_parse_packet(const uint8_t *buff);
 static void gdb_send_state(uint8_t signo);
@@ -1209,6 +1217,13 @@ static void handle_exception(void)
 			/* user interrupt by Ctrl-C, send current state and
 			   continue reading */
 			WDTRESET();
+			/* ArduDebug: the first request only marks the pause; the program
+			   stops before its next loop() pass. A second one stops at once. */
+			if ( gdb_ctx->target_running && !debug_pause_req ) {
+				debug_pause_req = 1;
+				return;
+			}
+			debug_pause_req = 0;
 			gdb_ctx->target_running = 0;	/* stopped by debugger break */
 			gdb_send_state(GDB_SIGINT);
 			break;
@@ -2098,6 +2113,19 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	gdb_ctx->pc = R_PC;
 	gdb_ctx->sp = R_SP;
 
+	/* ArduDebug: armed pause from debug_pause_point(). While the program is
+	   still inside that function, just return: the interrupt stays pending and
+	   comes back after the next instruction. Stop once it is back in main(). */
+	if ( debug_pause_req == 2 ) {
+		if ( R_SP <= debug_pause_sp )
+			goto out;
+		debug_pause_req = 0;
+		gdb_ctx->target_running = 0;
+		gdb_send_state(GDB_SIGINT);
+		handle_exception();
+		goto out;
+	}
+
 
 #ifdef AVR8_STUB_DEBUG
 	G_Debug_INTxCount++;
@@ -2123,7 +2151,11 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 			/* gdb_disable_swinterrupt();*/
 			/* option 2 - check if the char received is ctrl+c and if yes, send signal and go handle it */
 			ind_bks = getDebugChar();
-			if ( ind_bks == 0x03 ) {
+			if ( ind_bks == 0x03 && !debug_pause_req ) {
+				/* ArduDebug: first request only marks the pause, see above */
+				debug_pause_req = 1;
+			} else if ( ind_bks == 0x03 ) {
+				debug_pause_req = 0;
 				gdb_ctx->target_running = 0;	/* stopped on a breakpoint or after step */
 				/* need to send state as we already read the command */
 				gdb_send_state(GDB_SIGINT);
@@ -2227,6 +2259,19 @@ void breakpoint(void)
 		"out	__SREG__, r31\n"	/* restore SREG */
 		"lds	r31, regs+31\n"		/* real value of r31 */
 		"ret \n");
+}
+
+/* ArduDebug: called by main() before a loop() pass when a pause was requested.
+   It does not stop here itself: it arms the pause and enables the software
+   interrupt, so the stop happens in the INT0 handler right after the return
+   to main(). There the reported PC is real code of the program, and stepping
+   on from it works like after any other stop. */
+__attribute__((noinline))
+void debug_pause_point(void)
+{
+	debug_pause_sp = SP;
+	debug_pause_req = 2;
+	gdb_enable_swinterrupt();
 }
 
 
