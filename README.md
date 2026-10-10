@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **10.10.2026** Release **V0.1.2** with Linux, Windows and new macOS support.  
+* **10.10.2026** Release **V0.1.3** with serial output support.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -23,6 +23,14 @@ Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino ID
 - A small **bridge** program, started by the IDE, finds the Uno automatically and connects GDB to it.
   
 ![Screenshot](http://www.nikolairadke.de/aiduino/ardudebug_screenshot.png)
+
+## Serial output while debugging
+
+In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial.print()` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor.
+
+- `Serial.read()` receives nothing yet (`available()` returns 0). Tip: change variables directly in the debugger instead.
+- The Serial Plotter is not available during debugging.
+- The baud rate in `Serial.begin()` is ignored.
 
 ## Installation
 
@@ -70,7 +78,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 ## Limitations
 
 - The stub needs about 4 KB of flash in debug builds. Normal builds are unaffected.
-- `Serial` cannot be used in debug builds yet, because the stub uses the serial port.
+- `attachInterrupt()` cannot be used in debug builds: the debugger needs the external interrupt INT0 (pin 2).
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 
 ## Repository layout
