@@ -19,6 +19,7 @@
   Modified 28 September 2010 by Mark Sproul
   Modified 14 August 2012 by Alarus
   Modified 3 December 2013 by Matthijs Kooijman
+  Modified 10 October 2026 by Nikolai Radke 
 */
 
 #ifndef HardwareSerial_h
@@ -140,7 +141,12 @@ class HardwareSerial : public Stream
 };
 
 #if defined(UBRRH) || defined(UBRR0H)
-  extern HardwareSerial Serial;
+  #ifdef ARDUDEBUG
+    #include "DebugSerial.h"
+    extern DebugSerial Serial;
+  #else
+    extern HardwareSerial Serial;
+  #endif
   #define HAVE_HWSERIAL0
 #endif
 #if defined(UBRR1H)

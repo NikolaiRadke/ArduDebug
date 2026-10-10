@@ -90,6 +90,6 @@ func main() {
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
 	done := make(chan struct{}, 2)
 	go func() { io.Copy(ser, conn); done <- struct{}{} }()
-	go func() { io.Copy(conn, ser); done <- struct{}{} }()
+	go func() { forwardFiltered(conn, ser); done <- struct{}{} }()
 	<-done
 }

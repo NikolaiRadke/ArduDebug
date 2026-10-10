@@ -35,6 +35,7 @@
  *    Newer GDB versions send a qSupported packet longer than
  *    AVR8_MAX_BUFF, which overflowed the buffer and corrupted the
  *    saved registers.
+ *  - 2026-10-10: debug_write() sends output without appending "\n".
  */
 
 #include <avr/io.h>
@@ -2258,6 +2259,23 @@ void debug_message(const char* msg)
 	 */
 }
 
+/* ArduDebug: like debug_message(), but sends len bytes without appending
+   a newline. Returns the number of bytes that fit into the packet. */
+uint8_t debug_write(const char* buf, uint8_t len)
+{
+	uint8_t cSREG = SREG;
+	uint8_t i = 0, sent = 0;
+	cli();
+	gdb_ctx->buff[i++] = 'O';
+	while (sent < len && i < (AVR8_MAX_BUFF-4)) {
+		char c = buf[sent++];
+		gdb_ctx->buff[i++] = nib2hex((c >> 4) & 0xf);
+		gdb_ctx->buff[i++] = nib2hex(c & 0xf);
+	}
+	gdb_send_buff(gdb_ctx->buff, i);
+	SREG = cSREG;
+	return sent;
+}
 
 
 /*

@@ -292,7 +292,16 @@ void breakpoint(void);
  */
 void debug_message(const char* msg);
 
-
+/**
+ * Send program output to the debugger without appending "\n".
+ * Unlike debug_message(), the text is sent exactly as given, so a line can
+ * be continued by the next call. buf need not be null-terminated.
+ * Only as many bytes as fit into one packet are sent (about 45); the
+ * return value is the number of bytes sent, call again with the rest.
+ * The ArduDebug bridge shows the text in the gdb-server terminal of the
+ * Arduino IDE. (Added for ArduDebug.)
+ */
+uint8_t debug_write(const char* buf, uint8_t len);
 
 #ifdef __cplusplus
 }

@@ -34,7 +34,7 @@
 // file prevents the linker from pulling in any unused instances in the
 // first place.
 
-#if defined(HAVE_HWSERIAL0)
+#if defined(HAVE_HWSERIAL0) && !defined(ARDUDEBUG)
 
 #if defined(USART_RX_vect)
   ISR(USART_RX_vect)
