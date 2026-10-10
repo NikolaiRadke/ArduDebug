@@ -74,7 +74,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
-- **After *Pause*, you are inside `delay()` or other core code:** that's where the program spends most of its time. Use *Step Out* (Shift+F11) to get back to your sketch.
+- **Pause** stops right before the next pass of `loop()`, in the core's `main.cpp`. Press *Step Into* (F11) to enter `loop()`. If `loop()` doesn't return within a second, the program stops wherever it is, e.g. inside `delay()`; use *Step Out* (Shift+F11) to get back to your sketch.
 - **Reporting a problem:** please attach `ardudebug-bridge.log` from your temp folder (Linux/macOS: `/tmp`, Windows: `%TEMP%`). It records the communication of the last debug session.
 
 ## Limitations
@@ -82,6 +82,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - The stub needs about 4 KB of flash in debug builds. Normal builds are unaffected.
 - `attachInterrupt()` cannot be used in debug builds: the debugger needs the external interrupt INT0 (pin 2).
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
+- Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops wherever it currently is (usually inside `delay()`); press *Continue* (F5) to run to your breakpoint. *Pause* also stops wherever the program is.
 
 ## Repository layout
 
