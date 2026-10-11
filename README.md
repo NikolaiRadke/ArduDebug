@@ -43,6 +43,7 @@ In debug builds the serial port belongs to the debugger. Your sketch can still u
 - The receive buffer holds 63 characters, like the normal `Serial`.
 - The Serial Plotter is not available during debugging.
 - The baud rate in `Serial.begin()` is ignored.
+- - A debug build always talks to the debugger, even without a debug session: the Serial Monitor shows only garbage. To use the Serial Monitor, upload with *Optimize for Debugging* turned off.
 
 ## Installation
 
