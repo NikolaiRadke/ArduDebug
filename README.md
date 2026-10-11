@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** Release **V0.3.0** with Serial.read() support.  
+* **11.10.2026** Release **V0.3.1** with much improved performance.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -93,12 +93,17 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 
 ## Limitations
 
-- The stub needs about 4 KB of flash in debug builds. Normal builds are unaffected.
-- In debug builds, pin 2 (INT0) belongs to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
+- The stub needs about 4 KB of flash and about 260 bytes of RAM in debug builds. Normal builds are unaffected.
+- In debug builds, pins 0 and 1 (serial) and pin 2 (INT0) belong to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
+- Up to 8 breakpoints at a time.
+- While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently.
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
+- No watchpoints (stopping when a variable changes).
+- While the program is stopped, interrupts are off: `millis()` and `micros()` do not count on, but hardware PWM keeps running.
+- Local variables are often shown as *optimized out*, because debug builds are still optimized for size.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.
-- When the debug session starts, the board is reset and your sketch starts from the beginning. Without a debug session, a debug build runs normally.
+- When the debug session starts or you click *Restart*, the board is reset and your sketch starts from the beginning. Without a debug session, a debug build runs normally.
 
 ## Repository layout
 
