@@ -1442,36 +1442,20 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 		break;
 
 	case 'q':               /* query requests */
-		if(memcmp_PF(buff, (uintptr_t)PSTR("qSupported"), 10) == 0) {
-			/* plain send, from ram */
+		/* ArduDebug: the second character is enough to tell the queries
+		   apart that we answer. "monitor reset" (qRcmd) is handled by the
+		   bridge and never reaches the stub. */
+		if (buff[1] == 'S' && buff[2] == 'u') {		/* qSupported */
 			gdb_send_reply(gdb_str_packetsz);
 		}
-		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qC"), 2) == 0) {
-			/* current thread is always 1 */
+		else if (buff[1] == 'C' && buff[2] == 0) {	/* qC: current thread is always 1 */
 			gdb_send_reply(gdb_str_qc01);
 		}
-		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qfThreadInfo"), 12) == 0) {
-			/* always 1 thread*/
+		else if (buff[1] == 'f' && buff[2] == 'T') {	/* qfThreadInfo: always 1 thread */
 			gdb_send_reply(gdb_str_m1);
-	    }
-		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qsThreadInfo"), 12) == 0) {
-			/* send end of list */
-			gdb_send_reply(gdb_str_l);
 		}
-		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qRcmd,7265736574"), 16) == 0) {
-			/* reset target */
-#if (AVR8_BREAKPOINT_MODE == 0) || (AVR8_BREAKPOINT_MODE == 2)
-		        gdb_update_breakpoints(); // needed to gid rid of breakpoints
-#endif
-			gdb_send_reply(gdb_str_ok);
-			/* recommended way to reset - activate watchdog */
-			/* note: on newer ARVs including ATmega328 once enabled, the watchdog will stay 
-			 enabled even after reset; the software should disable it. It is disabled by 
-			 the optiboot bootloader on Arduino so all works fine. If you use your own hardware
-			 without optiboot you may need to disable the watchdog or it will keep reseting your
-			 program after the monitor reset restart. */
-			wdt_enable(WDTO_15MS);  
-    		while(1) ;		
+		else if (buff[1] == 's' && buff[2] == 'T') {	/* qsThreadInfo: end of list */
+			gdb_send_reply(gdb_str_l);
 		}
 		else {
 			gdb_send_reply(gdb_str_empty);  /* not supported */
