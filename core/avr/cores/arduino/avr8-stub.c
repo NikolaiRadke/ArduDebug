@@ -2156,6 +2156,80 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	static uint8_t ind_bks;
 #endif
 
+#if (AVR8_BREAKPOINT_MODE == 1) && !defined(__AVR_ATmega2560__)
+	/* ArduDebug: fast path. With a breakpoint set, this interrupt runs after
+	   every single instruction of the program. Saving and restoring all
+	   registers each time costs about 500 cycles. Here only a few registers
+	   are saved and the return address is compared with the breakpoints.
+	   Nothing to do (no step, no pause, no UART byte, no breakpoint hit):
+	   return at once. Otherwise restore the registers and take the full
+	   path below, which then sees exactly the same state. */
+	asm volatile (
+		"push	r24\n"
+		"in	r24, __SREG__\n"
+		"push	r24\n"
+		"push	r25\n"
+		"push	r26\n"
+		"push	r27\n"
+		"push	r28\n"
+		"push	r30\n"
+		"push	r31\n"
+		"lds	r24, %[step]\n"		/* single step: full path */
+		"tst	r24\n"
+		"brne	2f\n"
+		"lds	r24, %[pause]\n"		/* armed pause: full path */
+		"cpi	r24, 2\n"
+		"breq	2f\n"
+		"lds	r24, %[ucsra]\n"		/* UART byte waiting: full path */
+		"sbrc	r24, %[rxc]\n"
+		"rjmp	2f\n"
+		"in	r30, __SP_L__\n"		/* return address: 8 pushes above */
+		"in	r31, __SP_H__\n"
+		"ldd	r25, Z+9\n"			/* high byte */
+		"ldd	r24, Z+10\n"			/* low byte */
+		"andi	r25, %[mask]\n"
+		"lds	r28, %[cnt]\n"
+		"ldi	r26, lo8(%[brk])\n"
+		"ldi	r27, hi8(%[brk])\n"
+	"1:	tst	r28\n"				/* compare with each breakpoint */
+		"breq	3f\n"
+		"ld	r30, X+\n"
+		"ld	r31, X+\n"
+		"cp	r30, r24\n"
+		"cpc	r31, r25\n"
+		"breq	2f\n"				/* breakpoint hit: full path */
+		"dec	r28\n"
+		"rjmp	1b\n"
+	"3:	pop	r31\n"				/* nothing to do: return */
+		"pop	r30\n"
+		"pop	r28\n"
+		"pop	r27\n"
+		"pop	r26\n"
+		"pop	r25\n"
+		"pop	r24\n"
+		"out	__SREG__, r24\n"
+		"pop	r24\n"
+		"reti\n"
+	"2:	pop	r31\n"				/* restore and fall into the full path */
+		"pop	r30\n"
+		"pop	r28\n"
+		"pop	r27\n"
+		"pop	r26\n"
+		"pop	r25\n"
+		"pop	r24\n"
+		"out	__SREG__, r24\n"
+		"pop	r24\n"
+		:
+		: [step]  "i" (&ctx.singlestep_enabled),
+		  [pause] "i" (&debug_pause_req),
+		  [ucsra] "n" (_SFR_MEM_ADDR(UCSRA)),
+		  [rxc]   "n" (RXC),
+		  [mask]  "n" (RET_ADDR_MASK),
+		  [cnt]   "i" (&ctx.breaks_cnt),
+		  [brk]   "i" (ctx.breaks)
+	);
+#endif
+
 	save_regs1 ();
 	/*asm volatile ("ori r29, 0x80");*/	/* user must see interrupts enabled */
 	/* removed enabling the interrupt for user - don't know why they should see it enabled... */
