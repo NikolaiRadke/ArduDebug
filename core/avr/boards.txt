@@ -1,4 +1,5 @@
 menu.cpu=Processor
+menu.lto=LTO
 uno.name=Arduino UNO
 uno.vid.0=0x2341
 uno.pid.0=0x0043
@@ -41,6 +42,15 @@ uno.build.f_cpu=16000000L
 uno.build.board=AVR_UNO
 uno.build.core=arduino
 uno.build.variant=standard
+
+uno.menu.lto.on=Enabled (smaller code)
+uno.menu.lto.on.build.lto=-flto
+uno.menu.lto.on.build.lto_c=-flto -fno-fat-lto-objects
+uno.menu.lto.on.build.lto_elf=-flto -fuse-linker-plugin
+uno.menu.lto.off=Disabled (variables visible while debugging)
+uno.menu.lto.off.build.lto=
+uno.menu.lto.off.build.lto_c=
+uno.menu.lto.off.build.lto_elf=
 nano.name=Arduino Nano
 nano.upload_port.0.board=nano
 nano.upload.tool=avrdude
@@ -73,3 +83,12 @@ nano.menu.cpu.atmega328old.bootloader.high_fuses=0xDA
 nano.menu.cpu.atmega328old.bootloader.extended_fuses=0xFD
 nano.menu.cpu.atmega328old.bootloader.file=atmega/ATmegaBOOT_168_atmega328.hex
 nano.menu.cpu.atmega328old.build.mcu=atmega328p
+
+nano.menu.lto.on=Enabled (smaller code)
+nano.menu.lto.on.build.lto=-flto
+nano.menu.lto.on.build.lto_c=-flto -fno-fat-lto-objects
+nano.menu.lto.on.build.lto_elf=-flto -fuse-linker-plugin
+nano.menu.lto.off=Disabled (variables visible while debugging)
+nano.menu.lto.off.build.lto=
+nano.menu.lto.off.build.lto_c=
+nano.menu.lto.off.build.lto_elf=
