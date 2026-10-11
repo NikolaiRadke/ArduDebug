@@ -1226,10 +1226,12 @@ static void handle_exception(void)
 		
 		case 0x02:
 			/* ArduDebug: "debugger is coming". The bridge sends this after the
-			   reset until GDB connects. The first one stops the program right
-			   after debug_init(), before setup(); here we just wait for GDB. */
+			   reset until we answer. The first one stops the program right
+			   after debug_init(), before setup(); we confirm with 0x02 and
+			   wait here for GDB. */
 			if ( gdb_ctx->target_running )
 				return;
+			putDebugChar(0x02);
 			break;
 
 		case 0x01:

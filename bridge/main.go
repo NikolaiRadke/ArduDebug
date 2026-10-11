@@ -94,6 +94,34 @@ func announce(ser io.Writer) func() {
 	return func() { close(stop); <-done }
 }
 
+// readyMark ist die Quittung des Stubs auf das Kennbyte: Er steht jetzt vor
+// setup() und wartet auf GDB.
+const readyMark = 0x02
+
+// readyTimeout: So lange wartet die Bridge hoechstens auf die Quittung.
+var readyTimeout = 3 * time.Second
+
+// waitReady liest den Port, bis die Quittung kommt (true) oder readyTimeout
+// verstrichen ist (false). Andere Zeichen, etwa vom Bootloader, verfallen.
+func waitReady(ser serial.Port) bool {
+	ser.SetReadTimeout(50 * time.Millisecond)
+	defer ser.SetReadTimeout(serial.NoTimeout)
+	deadline := time.Now().Add(readyTimeout)
+	buf := make([]byte, 64)
+	for time.Now().Before(deadline) {
+		n, err := ser.Read(buf)
+		if err != nil {
+			return false
+		}
+		for _, b := range buf[:n] {
+			if b == readyMark {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // openFailed erklärt, warum der serielle Port nicht aufging, und beendet.
 func openFailed(name string, err error) {
 	var pe *serial.PortError
@@ -120,7 +148,8 @@ func main() {
 		fail("Arduino search", err)
 	}
 
-	// Öffnen löst einen Reset aus; danach dem Bootloader Zeit lassen.
+	// Öffnen löst einen Reset aus. Das Kennbyte beendet den Bootloader und
+	// haelt den Stub vor setup() an; er quittiert mit 0x02.
 	killOldBridges()
 	ser, err := openPort(name)
 	if err != nil {
@@ -128,7 +157,12 @@ func main() {
 	}
 	defer ser.Close()
 	stopAnnounce := announce(ser)
-	time.Sleep(2 * time.Second)
+	ready := waitReady(ser)
+	stopAnnounce()
+	if !ready {
+		fmt.Printf("Warn : no answer from the board. Was the sketch uploaded with " +
+			"Sketch -> Optimize for Debugging turned on?\n")
+	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
 	if err != nil {
@@ -144,7 +178,6 @@ func main() {
 	if err != nil {
 		fail("GDB connection", err)
 	}
-	stopAnnounce()
 	defer conn.Close()
 
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
@@ -157,6 +190,13 @@ func main() {
 	go input.run()
 	go readInput(os.Stdin, input)
 	resume := func() { input.setRunning(true) }
+	readyCh := make(chan struct{}, 1)
+	onReady := func() {
+		select {
+		case readyCh <- struct{}{}:
+		default:
+		}
+	}
 	stop := func() { guard.stopped(); input.setRunning(false) }
 	// "monitor reset" (Neu starten): Die Bridge antwortet GDB selbst mit OK
 	// und setzt das Board ueber DTR/RTS zurueck, wie beim Hochladen. Ein
@@ -171,13 +211,20 @@ func main() {
 		time.Sleep(250 * time.Millisecond)
 		ser.SetDTR(true)
 		ser.SetRTS(true)
+		select { // alte Quittung verwerfen
+		case <-readyCh:
+		default:
+		}
 		stopAnnounce := announce(traced{serLocked, "RST  "})
-		time.Sleep(800 * time.Millisecond)
+		select {
+		case <-readyCh:
+		case <-time.After(readyTimeout):
+		}
 		stopAnnounce()
 	}
 	go func() { forwardFromGDB(serOut, conn, guard, resume, reset); done <- struct{}{} }()
 	go func() {
-		forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}, stop)
+		forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}, stop, onReady)
 		done <- struct{}{}
 	}()
 	<-done

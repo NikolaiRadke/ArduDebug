@@ -9,12 +9,19 @@ import (
 // forwardFiltered reicht die Daten vom Stub an GDB weiter. Ausgabepakete
 // des Programms ($O<hex>#xx) werden abgefangen und als Text ins Terminal
 // der Bridge geschrieben, so wie der serielle Monitor sie zeigen wuerde.
-func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop func()) {
+// Spaete Quittungen (0x02) des Stubs gehen nicht an GDB, sondern an onReady.
+func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop, onReady func()) {
 	r := bufio.NewReader(stub)
 	for {
 		b, err := r.ReadByte()
 		if err != nil {
 			return
+		}
+		if b == readyMark {
+			if onReady != nil {
+				onReady()
+			}
+			continue
 		}
 		if b != '$' {
 			gdb.Write([]byte{b}) // z. B. '+' oder '-'
