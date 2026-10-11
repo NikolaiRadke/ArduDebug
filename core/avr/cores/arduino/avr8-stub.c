@@ -632,6 +632,29 @@ struct gdb_context
 /* Convert number 0-15 to hex */
 #define nib2hex(i) (uint8_t)((i) > 9 ? 'a' - 10 + (i) : '0' + (i))
 
+/* ArduDebug: shared helpers instead of the nib2hex()/hex2nib() code repeated
+   at every place. Both work little endian, like GDB expects the registers. */
+static uint8_t hex2nib(uint8_t hex);
+__attribute__((noinline))
+static uint8_t *mem2hex(uint8_t *dst, const uint8_t *src, uint8_t n)
+{
+	while (n--) {
+		uint8_t b = *src++;
+		*dst++ = nib2hex(b >> 4);
+		*dst++ = nib2hex(b & 0xf);
+	}
+	return dst;
+}
+__attribute__((noinline))
+static const uint8_t *hex2mem(uint8_t *dst, const uint8_t *src, uint8_t n)
+{
+	while (n--) {
+		uint8_t b = hex2nib(*src++) << 4;
+		*dst++ = b | hex2nib(*src++);
+	}
+	return src;
+}
+
 
 /*  Prototypes of internal functions */
 
@@ -1791,93 +1814,28 @@ static struct gdb_break *gdb_find_break(Address_t rom_addr)
 __attribute__((optimize("-Os")))
 static void gdb_read_registers(void)
 {
-	uint8_t a;
-	uint16_t b;
-	char c;
-	uint32_t pc = (uint32_t)gdb_ctx->pc << 1;	/* convert word address to byte address used by gdb */
-	uint8_t i = 0;
+	uint32_t pc = (uint32_t)gdb_ctx->pc << 1;	/* gdb uses byte addresses */
+	uint8_t *p = gdb_ctx->buff;
 
-	a = 32;	/* in the loop, send R0 thru R31 */
-	b = (uint16_t) &regs;
+	p = mem2hex(p, regs, 33);			/* R0..R31 and SREG */
+	p = mem2hex(p, (uint8_t*)&gdb_ctx->sp, 2);	/* SP */
+	p = mem2hex(p, (uint8_t*)&pc, 4);		/* PC, 32 bit */
 
-	do {
-		c = *(char*)b++;
-		gdb_ctx->buff[i++] = nib2hex((c >> 4) & 0xf);
-		gdb_ctx->buff[i++] = nib2hex((c >> 0) & 0xf);
-
-	} while (--a > 0);
-
-	/* send SREG as 32 register */
-	gdb_ctx->buff[i++] = nib2hex((R_SREG >> 4) & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((R_SREG >> 0) & 0xf);
-
-	/* send SP as 33 register */
-	gdb_ctx->buff[i++] = nib2hex((gdb_ctx->sp >> 4)  & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((gdb_ctx->sp >> 0)  & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((gdb_ctx->sp >> 12) & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((gdb_ctx->sp >> 8)  & 0xf);
-
-	/* send PC as 34 register
-	 gdb stores PC in a 32 bit value.
-	 gdb thinks PC is bytes into flash, not in words. */
-	gdb_ctx->buff[i++] = nib2hex((pc >> 4)  & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((pc >> 0)  & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((pc >> 12) & 0xf);
-	gdb_ctx->buff[i++] = nib2hex((pc >> 8)  & 0xf);
-#if defined(__AVR_ATmega2560__)
-	gdb_ctx->buff[i++] = nib2hex((pc >> 20) & 0xf);
-#else
-	gdb_ctx->buff[i++] = '0'; /* For AVR with up to 16-bit PC */
-#endif
-	gdb_ctx->buff[i++] = nib2hex((pc >> 16) & 0xf);
-	gdb_ctx->buff[i++] = '0'; /* gdb wants 32-bit value, send 0 */
-	gdb_ctx->buff[i++] = '0'; /* gdb wants 32-bit value, send 0 */
-
-	gdb_ctx->buff_sz = i;
+	gdb_ctx->buff_sz = p - gdb_ctx->buff;
 	gdb_send_buff(gdb_ctx->buff, gdb_ctx->buff_sz);
-
 }
 
 __attribute__((optimize("-Os")))
 static void gdb_write_registers(const uint8_t *buff)
 {
-
-	uint8_t a;
 	uint32_t pc;
 
-	a = 32;	/* in the loop, receive R0 thru R31 */
-	uint8_t *ptr = regs;
-
-	do {
-		*ptr  = hex2nib(*buff++) << 4;
-		*ptr |= hex2nib(*buff++);
-	} while (--a > 0);
-
-	/* receive SREG as 32 register */
-	R_SREG = hex2nib(*buff++) << 4;
-	R_SREG |= hex2nib(*buff++);
-
-	/* receive SP as 33 register */
-	gdb_ctx->sp  = hex2nib(*buff++) << 4;
-	gdb_ctx->sp |= hex2nib(*buff++);
-	gdb_ctx->sp |= hex2nib(*buff++) << 12;
-	gdb_ctx->sp |= hex2nib(*buff++) << 8;
-
-	/* receive PC as 34 register
-	   gdb stores PC in a 32 bit value.
-	   gdb thinks PC is bytes into flash, not in words. */
-	pc  = hex2nib(*buff++) << 4;
-	pc |= hex2nib(*buff++);
-	pc |= hex2nib(*buff++) << 12;
-	pc |= hex2nib(*buff++) << 8;
-	pc |= (uint32_t)hex2nib(*buff++) << 20;
-	pc |= (uint32_t)hex2nib(*buff++) << 16;
-	pc |= (uint32_t)hex2nib(*buff++) << 28;
-	pc |= (uint32_t)hex2nib(*buff++) << 24;
+	buff = hex2mem(regs, buff, 33);			/* R0..R31 and SREG */
+	buff = hex2mem((uint8_t*)&gdb_ctx->sp, buff, 2);	/* SP */
+	hex2mem((uint8_t*)&pc, buff, 4);		/* PC, 32 bit */
 	gdb_ctx->pc = pc >> 1;	/* drop the lowest bit; PC addresses words */
 
 	gdb_send_reply(gdb_str_ok);
-
 }
 
 __attribute__((optimize("-Os")))
@@ -2611,35 +2569,10 @@ static void gdb_send_state(uint8_t signo)
 			 38);
 	gdb_ctx->buff_sz = 38;
 
-	/* signo */
-	gdb_ctx->buff[1] = nib2hex((signo >> 4)  & 0xf);
-	gdb_ctx->buff[2] = nib2hex(signo & 0xf);
-
-	/* sreg */
-	gdb_ctx->buff[6] = nib2hex((R_SREG >> 4)  & 0xf);
-	gdb_ctx->buff[7] = nib2hex(R_SREG & 0xf);
-	//gdb_ctx->buff[6] = nib2hex((gdb_ctx->regs->sreg >> 4)  & 0xf);
-	//gdb_ctx->buff[7] = nib2hex(gdb_ctx->regs->sreg & 0xf);
-
-	/* sp */
-	gdb_ctx->buff[12] = nib2hex((gdb_ctx->sp >> 4)  & 0xf);
-	gdb_ctx->buff[13] = nib2hex((gdb_ctx->sp >> 0)  & 0xf);
-	gdb_ctx->buff[14] = nib2hex((gdb_ctx->sp >> 12) & 0xf);
-	gdb_ctx->buff[15] = nib2hex((gdb_ctx->sp >> 8)  & 0xf);
-
-	/* pc */
-	gdb_ctx->buff[20] = nib2hex((pc >> 4)  & 0xf);
-	gdb_ctx->buff[21] = nib2hex((pc >> 0)  & 0xf);
-	gdb_ctx->buff[22] = nib2hex((pc >> 12) & 0xf);
-	gdb_ctx->buff[23] = nib2hex((pc >> 8)  & 0xf);
-#if defined(__AVR_ATmega2560__)
-	gdb_ctx->buff[24] = nib2hex((pc >> 20) & 0xf);
-#else
-	gdb_ctx->buff[24] = '0';
-#endif
-	gdb_ctx->buff[25] = nib2hex((pc >> 16) & 0xf);
-	gdb_ctx->buff[26] = '0'; /* gdb wants 32-bit value, send 0 */
-	gdb_ctx->buff[27] = '0'; /* gdb wants 32-bit value, send 0 */
+	mem2hex(gdb_ctx->buff + 1, &signo, 1);
+	mem2hex(gdb_ctx->buff + 6, regs + 32, 1);			/* SREG */
+	mem2hex(gdb_ctx->buff + 12, (uint8_t*)&gdb_ctx->sp, 2);	/* SP */
+	mem2hex(gdb_ctx->buff + 20, (uint8_t*)&pc, 4);		/* PC */
 
 	/* not in hex, send from ram */
 	gdb_send_buff(gdb_ctx->buff, gdb_ctx->buff_sz);
