@@ -16,6 +16,16 @@ Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino ID
 | Arduino Mega 2560 | ATmega2560 | compiles, not yet tested |
 | Leonardo, Micro and other ATmega32U4 boards | ATmega32U4 | not supported by avr8-stub |
 
+## Testers wanted
+
+ArduDebug is tested on Linux and Windows with the Uno and the Nano (new bootloader). Help is welcome for:
+
+- **macOS** (Apple Silicon and Intel): the package includes macOS builds, but they have never been tried.
+- **Nano with the old bootloader**: should work, but is untested since V0.3.0.
+- **Mega 2560**: the core is prepared, but the board is not in the package yet.
+
+If you can test one of these, please open an [issue](https://github.com/NikolaiRadke/ArduDebug/issues) and tell me what happened, whether it works or not.
+
 ## How it works
 
 - **avr8-stub** (by Jan Dolinay) runs on Uno/Nano and speaks the GDB protocol over the serial line.
