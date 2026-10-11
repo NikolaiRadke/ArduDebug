@@ -93,7 +93,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 
 ## Limitations
 
-- The stub needs about 4 KB of flash and about 260 bytes of RAM in debug builds. Normal builds are unaffected.
+- The stub needs about 2.5 KB of flash and about 260 bytes of RAM in debug builds. Normal builds are unaffected.
 - In debug builds, pins 0 and 1 (serial) and pin 2 (INT0) belong to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
 - Up to 8 breakpoints at a time.
 - While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently.
