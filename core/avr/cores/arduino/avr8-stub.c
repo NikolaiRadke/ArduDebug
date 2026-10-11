@@ -659,9 +659,10 @@ static volatile uint16_t debug_pause_sp;
    first variable in .data and in .bss shares its address with the section
    symbols and would be missing from the "Global" list. These two bytes take
    the first place in each section (plain .data/.bss come before .data.* and
-   .bss.* in the linker script). debug_init() uses them so they are kept. */
+   .bss.* in the linker script). debug_init() uses them so they are kept.
+   The .bss byte doubles as the flag "GDB has connected", see debug_init(). */
 static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
-static volatile uint8_t debug_bss_pad __attribute__((section(".bss")));
+static volatile uint8_t debug_gdb_seen __attribute__((section(".bss")));
 static void gdb_send_reply(const char *reply);
 static bool_t gdb_parse_packet(const uint8_t *buff);
 static void gdb_send_state(uint8_t signo);
@@ -908,7 +909,7 @@ static unsigned char regs[GDB_NUMREGBYTES];	/* Copy of all registers */
 /* Initialize the debug driver. */
 void debug_init(void)
 {
-	debug_bss_pad = debug_data_pad;	/* keep the pads, see above */
+	if (debug_data_pad) { }	/* keep the .data pad, see above */
 
 	/* Init gdb context */
 	gdb_ctx = &ctx;
@@ -978,6 +979,12 @@ void debug_init(void)
  	TIMSK0 |= _BV(OCIE0A); /* enable the interrupt */
 #endif
 
+	/* ArduDebug: wait here until GDB talks to us, so the sketch does not run
+	   before the debugger is connected. Needs interrupts enabled (init() did
+	   sei()); the UART interrupt stops the program here and handle_exception()
+	   sets the flag. */
+	while ( !debug_gdb_seen )
+		;
 }
 
 #if ( (AVR8_BREAKPOINT_MODE == 0) || (AVR8_LOAD_SUPPORT == 1) || (AVR8_BREAKPOINT_MODE == 2) )
@@ -1127,6 +1134,8 @@ static void handle_exception(void)
 {
 	uint8_t checksum, pkt_checksum;
 	uint8_t b;
+
+	debug_gdb_seen = 1;	/* ArduDebug: GDB is connected, see debug_init() */
 
 	gdb_ctx->singlestep_enabled = 0;		/* stepping by single instruction is enabled below for each step */
 
