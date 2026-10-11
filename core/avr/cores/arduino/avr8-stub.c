@@ -1842,11 +1842,20 @@ static void gdb_read_memory(const uint8_t *buff)
 		gdb_send_reply(gdb_str_e05);
 		return;
 	}
+#if defined(__AVR_ATmega2560__)
 	addr &= ~MEM_SPACE_MASK;
 	for (i = 0; i < sz; ++i) {
 		b = sram ? ((uint8_t*)(uintptr_t)addr)[i] : safe_pgm_read_byte(addr + i);
 		p = mem2hex(p, &b, 1);
 	}
+#else
+	/* ArduDebug: 16 bit addresses are enough below 64 KB of flash */
+	uint16_t a = addr;
+	for (i = (uint8_t)sz; i > 0; i--, a++) {
+		b = sram ? *(uint8_t*)a : pgm_read_byte(a);
+		p = mem2hex(p, &b, 1);
+	}
+#endif
 	gdb_ctx->buff_sz = p - gdb_ctx->buff;
 	gdb_send_buff(gdb_ctx->buff, gdb_ctx->buff_sz);
 }
