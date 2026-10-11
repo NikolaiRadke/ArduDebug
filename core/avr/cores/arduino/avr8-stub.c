@@ -2376,17 +2376,14 @@ void debug_message(const char* msg)
 uint8_t debug_write(const char* buf, uint8_t len)
 {
 	uint8_t cSREG = SREG;
-	uint8_t i = 0, sent = 0;
 	cli();
-	gdb_ctx->buff[i++] = 'O';
-	while (sent < len && i < (AVR8_MAX_BUFF-4)) {
-		char c = buf[sent++];
-		gdb_ctx->buff[i++] = nib2hex((c >> 4) & 0xf);
-		gdb_ctx->buff[i++] = nib2hex(c & 0xf);
-	}
-	gdb_send_buff(gdb_ctx->buff, i);
+	gdb_ctx->buff[0] = 'O';
+	if (len > (AVR8_MAX_BUFF-4) / 2)
+		len = (AVR8_MAX_BUFF-4) / 2;
+	mem2hex(gdb_ctx->buff + 1, (const uint8_t*)buf, len);
+	gdb_send_buff(gdb_ctx->buff, len * 2 + 1);
 	SREG = cSREG;
-	return sent;
+	return len;
 }
 
 
