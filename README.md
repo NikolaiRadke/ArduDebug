@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** * **11.10.2026** Release **V0.1.7** with LTO menu: see and change your variables while debugging.
+* **11.10.2026** * Release **V0.1.8** with LTO menu: see and change your variables while debugging.
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
