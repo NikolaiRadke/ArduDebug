@@ -163,3 +163,4 @@ compiler.optimization_flags.release=-Os
 compiler.optimization_flags.debug=-Os -DARDUDEBUG -fno-optimize-sibling-calls
 compiler.c.extra_flags={compiler.optimization_flags}
 compiler.cpp.extra_flags={compiler.optimization_flags}
+debug.svd_file={runtime.platform.path}/ATmega328P.svd
