@@ -160,6 +160,6 @@ debug.cortex-debug.custom.objdumpPath={runtime.tools.avr-gcc.path}/bin/avr-objdu
 # debug.cortex-debug.custom.objdumpPath.windows={runtime.tools.avr-gcc.path}/bin/avr-objdump.exe
 compiler.optimization_flags=-Os
 compiler.optimization_flags.release=-Os
-compiler.optimization_flags.debug=-Os -DARDUDEBUG
+compiler.optimization_flags.debug=-Os -DARDUDEBUG -fno-optimize-sibling-calls
 compiler.c.extra_flags={compiler.optimization_flags}
 compiler.cpp.extra_flags={compiler.optimization_flags}
