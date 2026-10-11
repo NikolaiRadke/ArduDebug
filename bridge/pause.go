@@ -42,23 +42,34 @@ func (g *pauseGuard) stopped() {
 
 // forwardFromGDB reicht alles von GDB an den Stub weiter und erkennt dabei
 // Pause-Signale. Ein 0x03 zaehlt nur ausserhalb von Paketen ($...#xx).
-func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard) {
+// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist.
+func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue func()) {
 	buf := make([]byte, 512)
-	inPacket, escape, checksum := false, false, 0
+	inPacket, escape, checksum, first := false, false, 0, false
+	var cmd byte
 	for {
 		n, err := gdb.Read(buf)
+		resumed := false
 		for _, b := range buf[:n] {
 			switch {
 			case checksum > 0:
 				checksum--
+			case inPacket && first:
+				cmd, first = b, false
+				if b == '#' {
+					inPacket, checksum = false, 2
+				}
 			case inPacket && escape:
 				escape = false
 			case inPacket && b == '}':
 				escape = true
 			case inPacket && b == '#':
 				inPacket, checksum = false, 2
+				if cmd == 'c' || cmd == 'C' {
+					resumed = true
+				}
 			case !inPacket && b == '$':
-				inPacket = true
+				inPacket, first = true, true
 			case !inPacket && b == 0x03:
 				g.interrupted()
 			}
@@ -67,6 +78,9 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard) {
 			if _, werr := stub.Write(buf[:n]); werr != nil {
 				return
 			}
+		}
+		if resumed && onContinue != nil {
+			onContinue()
 		}
 		if err != nil {
 			return

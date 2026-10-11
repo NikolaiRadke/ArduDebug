@@ -123,11 +123,17 @@ func main() {
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
 	openTrace()
 	done := make(chan struct{}, 2)
-	serOut := &lockedWriter{w: traced{ser, "GDB->"}}
+	serLocked := &lockedWriter{w: ser} // GDB und Eingaben schreiben beide hierhin
+	serOut := traced{serLocked, "GDB->"}
 	guard := &pauseGuard{ser: serOut}
-	go func() { forwardFromGDB(serOut, conn, guard); done <- struct{}{} }()
+	input := newInputForwarder(traced{serLocked, "IN   "})
+	go input.run()
+	go readInput(os.Stdin, input)
+	resume := func() { input.setRunning(true) }
+	stop := func() { guard.stopped(); input.setRunning(false) }
+	go func() { forwardFromGDB(serOut, conn, guard, resume); done <- struct{}{} }()
 	go func() {
-		forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}, guard.stopped)
+		forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}, stop)
 		done <- struct{}{}
 	}()
 	<-done

@@ -292,6 +292,13 @@ void breakpoint(void);
 extern volatile uint8_t debug_pause_req;
 void debug_pause_point(void);
 
+/**
+ * ArduDebug: called for each character typed in the gdb-server terminal
+ * while the program runs. The default does nothing; DebugSerial.cpp
+ * overrides it to fill the receive buffer of Serial.
+ */
+void debug_rx_char(uint8_t c);
+
 
 /**
  * Send text message to gdb console.

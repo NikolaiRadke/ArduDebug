@@ -663,6 +663,14 @@ static volatile uint16_t debug_pause_sp;
    The .bss byte doubles as the flag "GDB has connected", see debug_init(). */
 static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
 static volatile uint8_t debug_gdb_seen __attribute__((section(".bss")));
+
+/* ArduDebug: receives each character typed in the gdb-server terminal.
+   Called with interrupts disabled. This default drops it; DebugSerial.cpp
+   provides the real one when the sketch uses Serial. */
+__attribute__((weak)) void debug_rx_char(uint8_t c)
+{
+	(void)c;
+}
 static void gdb_send_reply(const char *reply);
 static bool_t gdb_parse_packet(const uint8_t *buff);
 static void gdb_send_state(uint8_t signo);
@@ -1219,6 +1227,15 @@ static void handle_exception(void)
 			WDTRESET();
 			break;
 		
+		case 0x01:
+			/* ArduDebug: a character typed in the gdb-server terminal follows.
+			   The bridge sends these only while the program runs, so just pass
+			   it on and let the program continue, like after '+' below. */
+			debug_rx_char(getDebugChar());
+			if ( gdb_ctx->target_running )
+				return;
+			break;
+
 		case '+':  /* ACK, great */
 			/* there is special case we need to handle - if we send something to the GDB while the 
 			target is running, and GDB returns ACK, we need to let the target run instead of 
@@ -2169,7 +2186,10 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 			/* gdb_disable_swinterrupt();*/
 			/* option 2 - check if the char received is ctrl+c and if yes, send signal and go handle it */
 			ind_bks = getDebugChar();
-			if ( ind_bks == 0x03 && !debug_pause_req ) {
+			if ( ind_bks == 0x01 ) {
+				/* ArduDebug: typed character, see handle_exception() */
+				debug_rx_char(getDebugChar());
+			} else if ( ind_bks == 0x03 && !debug_pause_req ) {
 				/* ArduDebug: first request only marks the pause, see above */
 				debug_pause_req = 1;
 			} else if ( ind_bks == 0x03 ) {
