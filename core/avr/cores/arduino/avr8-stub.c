@@ -670,7 +670,7 @@ __attribute__((weak)) void debug_rx_char(uint8_t c)
 {
 	(void)c;
 }
-static void gdb_send_reply(const char *reply);
+static void gdb_send_reply(const char *reply);	/* ArduDebug: reply is in flash */
 static bool_t gdb_parse_packet(const uint8_t *buff);
 static void gdb_send_state(uint8_t signo);
 static void gdb_write_registers(const uint8_t *buff);
@@ -821,7 +821,18 @@ static struct gdb_context *gdb_ctx;
 
 /* String for PacketSize reply to gdb query.
  * Note: if running out of RAM the reply to qSupported packet can be removed. */
-static char* gdb_str_packetsz = "PacketSize=" STR_VAL(AVR8_MAX_BUFF_HEX);
+static const char gdb_str_packetsz[] PROGMEM = "PacketSize=" STR_VAL(AVR8_MAX_BUFF_HEX);
+
+/* ArduDebug: all fixed replies live in flash, each only once, instead of
+   being copied to RAM at startup. */
+static const char gdb_str_ok[]    PROGMEM = "OK";
+static const char gdb_str_e05[]   PROGMEM = "E05";
+static const char gdb_str_e50[]   PROGMEM = "E50";
+static const char gdb_str_s05[]   PROGMEM = "S05";
+static const char gdb_str_qc01[]  PROGMEM = "QC01";
+static const char gdb_str_m1[]    PROGMEM = "m1";
+static const char gdb_str_l[]     PROGMEM = "l";
+static const char gdb_str_empty[] PROGMEM = "";
 
 /* PC is 17-bit on ATmega2560; we need 1 more byte for registers but since we will
  * work with the PC as uint32 we need one extra byte; the code then assumes this byte
@@ -1272,7 +1283,7 @@ static void handle_exception(void)
 
 		default:
 			WDTRESET();
-			gdb_send_reply(""); /* not supported */
+			gdb_send_reply(gdb_str_empty); /* not supported */
 			break;
 		}	// switch
 	}	// while 1
@@ -1297,13 +1308,13 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 	
 	switch (*buff) {
 	case '?':               /* last signal */
-		gdb_send_reply("S05"); /* signal # 5 is SIGTRAP */
+		gdb_send_reply(gdb_str_s05); /* signal # 5 is SIGTRAP */
 		break;
 	case 'H':               /* Set thread, always OK */
-		gdb_send_reply("OK");
+		gdb_send_reply(gdb_str_ok);
 		break;
 	case 'T':               /* Is thread alive, always OK */
-		gdb_send_reply("OK");
+		gdb_send_reply(gdb_str_ok);
 		break;
 	case 'g':               /* read registers */
 		gdb_read_registers();
@@ -1327,7 +1338,7 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 		 If we do support it we reply OK, we call the bootloader code to handle it.
 		 If we do not support it, GDB will try to load using memory write.
 		*/
-		gdb_send_reply("OK");
+		gdb_send_reply(gdb_str_ok);
 		dboot_handle_xload();
 		break;
 #endif
@@ -1338,7 +1349,7 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 		/* Update the flash so that the program can run after reset without breakpoints */
 		gdb_update_breakpoints();
 #endif
-		gdb_send_reply("OK");
+		gdb_send_reply(gdb_str_ok);
 		gdb_ctx->target_running = 1;
 		return FALSE;
 
@@ -1362,7 +1373,7 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 
 	case 'C':               /* continue with signal */
 	case 'S':               /* step with signal */
-		gdb_send_reply(""); /* not supported */
+		gdb_send_reply(gdb_str_empty); /* not supported */
 		break;
 
 	case 's':               /* step */
@@ -1405,26 +1416,26 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
 	case 'q':               /* query requests */
 		if(memcmp_PF(buff, (uintptr_t)PSTR("qSupported"), 10) == 0) {
 			/* plain send, from ram */
-			gdb_send_buff((uint8_t*)gdb_str_packetsz, strlen(gdb_str_packetsz));
+			gdb_send_reply(gdb_str_packetsz);
 		}
 		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qC"), 2) == 0) {
 			/* current thread is always 1 */
-			gdb_send_reply("QC01");
+			gdb_send_reply(gdb_str_qc01);
 		}
 		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qfThreadInfo"), 12) == 0) {
 			/* always 1 thread*/
-			gdb_send_reply("m1");
+			gdb_send_reply(gdb_str_m1);
 	    }
 		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qsThreadInfo"), 12) == 0) {
 			/* send end of list */
-			gdb_send_reply("l");
+			gdb_send_reply(gdb_str_l);
 		}
 		else if(memcmp_PF(gdb_ctx->buff, (uintptr_t)PSTR("qRcmd,7265736574"), 16) == 0) {
 			/* reset target */
 #if (AVR8_BREAKPOINT_MODE == 0) || (AVR8_BREAKPOINT_MODE == 2)
 		        gdb_update_breakpoints(); // needed to gid rid of breakpoints
 #endif
-			gdb_send_reply("OK");
+			gdb_send_reply(gdb_str_ok);
 			/* recommended way to reset - activate watchdog */
 			/* note: on newer ARVs including ATmega328 once enabled, the watchdog will stay 
 			 enabled even after reset; the software should disable it. It is disabled by 
@@ -1435,13 +1446,13 @@ static bool_t gdb_parse_packet(const uint8_t *buff)
     		while(1) ;		
 		}
 		else {
-			gdb_send_reply("");  /* not supported */
+			gdb_send_reply(gdb_str_empty);  /* not supported */
 		}
 
 		break;
 
 	default:
-		gdb_send_reply("");  /* not supported */
+		gdb_send_reply(gdb_str_empty);  /* not supported */
 		break;
 	}
 	
@@ -1567,21 +1578,21 @@ static void gdb_insert_remove_breakpoint(const uint8_t *buff)
 	case '0': /* software breakpoint */
 		if (buff[0] == 'Z') {
 			if ( gdb_insert_breakpoint(rom_addr_b >> 1) )
-				gdb_send_reply("OK");
+				gdb_send_reply(gdb_str_ok);
 			else {
-				gdb_send_reply("E50");	/* Unable to set breakpoint */
+				gdb_send_reply(gdb_str_e50);	/* Unable to set breakpoint */
 				/* The error code does not seem to make any difference... */
 			}
 		}
 		else {
 			gdb_remove_breakpoint(rom_addr_b >> 1);
-			gdb_send_reply("OK");
+			gdb_send_reply(gdb_str_ok);
 		}
 		break;
 
 	default:
 		/* we do not support other breakpoints, only software */
-		gdb_send_reply("");
+		gdb_send_reply(gdb_str_empty);
 		break;
 	}
 }
@@ -1860,7 +1871,7 @@ static void gdb_write_registers(const uint8_t *buff)
 	pc |= (uint32_t)hex2nib(*buff++) << 24;
 	gdb_ctx->pc = pc >> 1;	/* drop the lowest bit; PC addresses words */
 
-	gdb_send_reply("OK");
+	gdb_send_reply(gdb_str_ok);
 
 }
 
@@ -1914,7 +1925,7 @@ static void gdb_read_memory(const uint8_t *buff)
 	}
 	else {
 		/* posix EIO error */
-		gdb_send_reply("E05");
+		gdb_send_reply(gdb_str_e05);
 		return;
 	}
 	gdb_ctx->buff_sz = sz * 2;
@@ -1943,7 +1954,7 @@ static void gdb_write_memory(const uint8_t *buff)
 	}
 	else if ((addr & MEM_SPACE_MASK) == FLASH_OFFSET){
 		/* posix EIO error */
-		gdb_send_reply("E05");
+		gdb_send_reply(gdb_str_e05);
 		return;
 #if 0	/* writing to flash not supported - but it could be as of 4/2017, use flash_memory_write
  	 	 warning: if enabled, fix the code in parse_packet which handles binary load (X). If case we
@@ -1969,10 +1980,10 @@ static void gdb_write_memory(const uint8_t *buff)
 	}
 	else {
 		/* posix EIO error */
-		gdb_send_reply("E05");
+		gdb_send_reply(gdb_str_e05);
 		return;
 	}
-	gdb_send_reply("OK");
+	gdb_send_reply(gdb_str_ok);
 }
 
 #if 0
@@ -1992,7 +2003,7 @@ static void gdb_write_binary(const uint8_t *buff) {
 
 	if ((addr & MEM_SPACE_MASK) == SRAM_OFFSET) {
 		addr &= ~MEM_SPACE_MASK;
-		gdb_send_reply("E05"); /* do not support binary write */
+		gdb_send_reply(gdb_str_e05); /* do not support binary write */
 		return;
 	} else if ((addr & MEM_SPACE_MASK) == FLASH_OFFSET) {
 		/* Write to flash. GDB sends binary data; not characters in hex */
@@ -2017,10 +2028,10 @@ static void gdb_write_binary(const uint8_t *buff) {
 #endif
 	} else {
 		/* posix EIO error */
-		gdb_send_reply("E05");
+		gdb_send_reply(gdb_str_e05);
 		return;
 	}
-	gdb_send_reply("OK");
+	gdb_send_reply(gdb_str_ok);
 
 }
 
@@ -2464,13 +2475,14 @@ static void gdb_send_buff(const uint8_t *buff, uint8_t sz)
 }
 
 __attribute__((optimize("-Os")))
+/* ArduDebug: reply is in flash (PROGMEM) */
 static void gdb_send_reply(const char *reply)
 {
-	gdb_ctx->buff_sz = strlen(reply);
+	gdb_ctx->buff_sz = strlen_P(reply);
 	if ( gdb_ctx->buff_sz > (AVR8_MAX_BUFF - 4))
 		gdb_ctx->buff_sz = AVR8_MAX_BUFF - 4;
 
-	memcpy(gdb_ctx->buff, reply, gdb_ctx->buff_sz);
+	memcpy_P(gdb_ctx->buff, reply, gdb_ctx->buff_sz);
 	gdb_send_buff(gdb_ctx->buff, gdb_ctx->buff_sz);
 
 }
