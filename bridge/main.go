@@ -158,14 +158,21 @@ func main() {
 	go readInput(os.Stdin, input)
 	resume := func() { input.setRunning(true) }
 	stop := func() { guard.stopped(); input.setRunning(false) }
-	// Nach "monitor reset" (Neu starten): Der Stub antwortet OK und startet
-	// per Watchdog neu. Dann wieder das Kennbyte schicken, damit er vor
-	// setup() anhaelt, und GDB so lange warten lassen.
+	// "monitor reset" (Neu starten): Die Bridge antwortet GDB selbst mit OK
+	// und setzt das Board ueber DTR/RTS zurueck, wie beim Hochladen. Ein
+	// Watchdog-Reset im Stub wuerde den alten Nano-Bootloader in eine
+	// Reset-Schleife schicken. Danach wieder das Kennbyte, damit der Stub vor
+	// setup() anhaelt; GDB wartet so lange.
 	reset := func() {
 		input.setRunning(false)
-		time.Sleep(50 * time.Millisecond)
+		traced{conn, "<-BRG"}.Write([]byte("+$OK#9a"))
+		ser.SetDTR(false)
+		ser.SetRTS(false)
+		time.Sleep(250 * time.Millisecond)
+		ser.SetDTR(true)
+		ser.SetRTS(true)
 		stopAnnounce := announce(traced{serLocked, "RST  "})
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(800 * time.Millisecond)
 		stopAnnounce()
 	}
 	go func() { forwardFromGDB(serOut, conn, guard, resume, reset); done <- struct{}{} }()

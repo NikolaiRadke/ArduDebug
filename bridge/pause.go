@@ -42,21 +42,31 @@ func (g *pauseGuard) stopped() {
 
 // forwardFromGDB reicht alles von GDB an den Stub weiter und erkennt dabei
 // Pause-Signale. Ein 0x03 zaehlt nur ausserhalb von Paketen ($...#xx).
-// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist,
-// onReset nach "monitor reset" (qRcmd,7265736574). Solange onReset laeuft,
-// wird nichts weitergereicht: GDBs naechste Pakete warten, bis das Board
-// nach dem Reset wieder zuhoert.
+// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist.
+// "monitor reset" (qRcmd,7265736574) erreicht den Stub nicht: Die Bridge
+// erledigt den Reset selbst in onReset. Solange onReset laeuft, wird nichts
+// weitergereicht; GDBs naechste Pakete warten, bis das Board wieder zuhoert.
 func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, onReset func()) {
 	buf := make([]byte, 512)
 	inPacket, escape, checksum := false, false, 0
 	var pkt []byte
+	var out, carry []byte
+	pktStart, dropPkt := 0, false
 	for {
 		n, err := gdb.Read(buf)
 		resumed, reset := false, false
+		// Ein angefangenes Paket aus dem letzten Lesen kommt wieder nach vorn.
+		out = append(out[:0], carry...)
+		carry = carry[:0]
+		pktStart = 0
 		for _, b := range buf[:n] {
+			out = append(out, b)
 			switch {
 			case checksum > 0:
 				checksum--
+				if checksum == 0 && dropPkt {
+					out, dropPkt = out[:pktStart], false // Reset-Paket nicht weitergeben
+				}
 			case inPacket && escape:
 				escape = false
 				pkt = appendShort(pkt, b)
@@ -68,18 +78,24 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, on
 					resumed = true
 				}
 				if string(pkt) == resetPacket {
-					reset = true
+					reset, dropPkt = true, true
 				}
 			case inPacket:
 				pkt = appendShort(pkt, b)
 			case b == '$':
-				inPacket, pkt = true, pkt[:0]
+				inPacket, pkt, pktStart = true, pkt[:0], len(out)-1
 			case b == 0x03:
 				g.interrupted()
 			}
 		}
-		if n > 0 {
-			if _, werr := stub.Write(buf[:n]); werr != nil {
+		// Ein noch unvollstaendiges Paket zurueckhalten, bis es komplett ist,
+		// damit ein Reset-Paket nie halb beim Stub ankommt.
+		if (inPacket || checksum > 0) && err == nil {
+			carry = append(carry, out[pktStart:]...)
+			out = out[:pktStart]
+		}
+		if len(out) > 0 {
+			if _, werr := stub.Write(out); werr != nil {
 				return
 			}
 		}
