@@ -2200,7 +2200,24 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"breq	2f\n"				/* breakpoint hit: full path */
 		"dec	r28\n"
 		"rjmp	1b\n"
-	"3:	pop	r31\n"				/* nothing to do: return */
+	"3:	sbis	%[tifr], %[tov]\n"		/* Timer0 overflow waiting... */
+		"rjmp	4f\n"
+		"lds	r24, %[timsk]\n"		/* ...and its interrupt enabled? */
+		"sbrs	r24, %[toie]\n"
+		"rjmp	4f\n"
+		"ldi	r24, %[tovbit]\n"		/* clear only the overflow flag */
+		"out	%[tifr], r24\n"
+		"pop	r31\n"				/* restore and run the Timer0 */
+		"pop	r30\n"				/* interrupt (millis) now; INT0 */
+		"pop	r28\n"				/* has the highest priority and */
+		"pop	r27\n"				/* would starve it otherwise. */
+		"pop	r26\n"				/* Its reti returns to the same */
+		"pop	r25\n"				/* instruction, so no breakpoint */
+		"pop	r24\n"				/* check is skipped. */
+		"out	__SREG__, r24\n"
+		"pop	r24\n"
+		"jmp	" STR_VAL(TIMER0_OVF_vect) "\n"
+	"4:	pop	r31\n"				/* nothing to do: return */
 		"pop	r30\n"
 		"pop	r28\n"
 		"pop	r27\n"
@@ -2226,7 +2243,12 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		  [rxc]   "n" (RXC),
 		  [mask]  "n" (RET_ADDR_MASK),
 		  [cnt]   "i" (&ctx.breaks_cnt),
-		  [brk]   "i" (ctx.breaks)
+		  [brk]   "i" (ctx.breaks),
+		  [tifr]  "n" (_SFR_IO_ADDR(TIFR0)),
+		  [tov]   "n" (TOV0),
+		  [tovbit] "n" (_BV(TOV0)),
+		  [timsk] "n" (_SFR_MEM_ADDR(TIMSK0)),
+		  [toie]  "n" (TOIE0)
 	);
 #endif
 
