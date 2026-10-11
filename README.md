@@ -87,7 +87,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.
-- A debug build waits for the debugger after every reset: without a debug session it does not start. Upload a normal build (*Optimize for Debugging* off) for normal use.
+- When the debug session starts, the board is reset and your sketch starts from the beginning. Without a debug session, a debug build runs normally.
 
 ## Repository layout
 
