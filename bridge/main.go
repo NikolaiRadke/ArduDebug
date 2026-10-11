@@ -6,6 +6,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"regexp"
@@ -69,6 +70,30 @@ func openPort(name string) (serial.Port, error) {
 	}
 }
 
+// announce schickt nach dem Reset alle 10 ms das Kennbyte 0x02 ("Debugger
+// kommt"). Der Stub haelt beim ersten davon direkt nach debug_init() an und
+// wartet auf GDB; der Sketch beginnt also erst mit dem Debugger. Unbekannte
+// Zeichen lassen ausserdem den Bootloader sofort den Sketch starten.
+// Die zurueckgegebene Funktion beendet das Senden und wartet darauf.
+func announce(ser io.Writer) func() {
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		t := time.NewTicker(10 * time.Millisecond)
+		defer t.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-t.C:
+				ser.Write([]byte{0x02})
+			}
+		}
+	}()
+	return func() { close(stop); <-done }
+}
+
 // openFailed erklärt, warum der serielle Port nicht aufging, und beendet.
 func openFailed(name string, err error) {
 	var pe *serial.PortError
@@ -102,6 +127,7 @@ func main() {
 		openFailed(name, err)
 	}
 	defer ser.Close()
+	stopAnnounce := announce(ser)
 	time.Sleep(2 * time.Second)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
@@ -118,6 +144,7 @@ func main() {
 	if err != nil {
 		fail("GDB connection", err)
 	}
+	stopAnnounce()
 	defer conn.Close()
 
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
