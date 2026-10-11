@@ -81,7 +81,8 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 ## Limitations
 
 - The stub needs about 4 KB of flash in debug builds. Normal builds are unaffected.
-- `attachInterrupt()` cannot be used in debug builds: the debugger needs the external interrupt INT0 (pin 2).
+- In debug builds, pin 2 (INT0) belongs to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
+- Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops wherever it currently is (usually inside `delay()`); press *Continue* (F5) to run to your breakpoint. *Pause* also stops wherever the program is.
 

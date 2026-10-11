@@ -22,6 +22,7 @@
   
   Modified 24 November 2006 by David A. Mellis
   Modified 1 August 2010 by Mark Sproul
+  Modified 11 October 2026 by Nikolai Radke for ArduDebug (INT0 in debug builds)
 */
 
 #include <inttypes.h>
@@ -31,6 +32,17 @@
 #include <stdio.h>
 
 #include "wiring_private.h"
+
+#ifdef ARDUDEBUG
+// ArduDebug: the debugger needs INT0 for single stepping and breakpoints.
+// In debug builds that interrupt is left alone: no ISR here, and
+// attachInterrupt()/detachInterrupt() ignore it. All others work as usual.
+#if defined(EICRA) && defined(EICRB) && !defined(__AVR_ATmega32U4__)
+#define DEBUG_INT0 EXTERNAL_INT_2	// Mega: INT0 is interrupt 2 (pin 21)
+#else
+#define DEBUG_INT0 EXTERNAL_INT_0	// Uno/Nano: INT0 is interrupt 0 (pin 2)
+#endif
+#endif
 
 static void nothing(void) {
 }
@@ -67,6 +79,9 @@ static volatile voidFuncPtr intFunc[EXTERNAL_NUM_INTERRUPTS] = {
 };
 
 void attachInterrupt(uint8_t interruptNum, void (*userFunc)(void), int mode) {
+#ifdef ARDUDEBUG
+  if (interruptNum == DEBUG_INT0) return;
+#endif
   if(interruptNum < EXTERNAL_NUM_INTERRUPTS) {
     intFunc[interruptNum] = userFunc;
     
@@ -217,6 +232,9 @@ void attachInterrupt(uint8_t interruptNum, void (*userFunc)(void), int mode) {
 }
 
 void detachInterrupt(uint8_t interruptNum) {
+#ifdef ARDUDEBUG
+  if (interruptNum == DEBUG_INT0) return;
+#endif
   if(interruptNum < EXTERNAL_NUM_INTERRUPTS) {
     // Disable the interrupt.  (We can't assume that interruptNum is equal
     // to the number of the EIMSK bit to clear, as this isn't true on the 
@@ -358,7 +376,9 @@ IMPLEMENT_ISR(INT7_vect, EXTERNAL_INT_7)
 
 #elif defined(EICRA) && defined(EICRB)
 
+#ifndef ARDUDEBUG
 IMPLEMENT_ISR(INT0_vect, EXTERNAL_INT_2)
+#endif
 IMPLEMENT_ISR(INT1_vect, EXTERNAL_INT_3)
 IMPLEMENT_ISR(INT2_vect, EXTERNAL_INT_4)
 IMPLEMENT_ISR(INT3_vect, EXTERNAL_INT_5)
@@ -369,7 +389,9 @@ IMPLEMENT_ISR(INT7_vect, EXTERNAL_INT_7)
 
 #else
 
+#ifndef ARDUDEBUG
 IMPLEMENT_ISR(INT0_vect, EXTERNAL_INT_0)
+#endif
 IMPLEMENT_ISR(INT1_vect, EXTERNAL_INT_1)
 
 #if defined(EICRA) && defined(ISC20)
