@@ -158,7 +158,17 @@ func main() {
 	go readInput(os.Stdin, input)
 	resume := func() { input.setRunning(true) }
 	stop := func() { guard.stopped(); input.setRunning(false) }
-	go func() { forwardFromGDB(serOut, conn, guard, resume); done <- struct{}{} }()
+	// Nach "monitor reset" (Neu starten): Der Stub antwortet OK und startet
+	// per Watchdog neu. Dann wieder das Kennbyte schicken, damit er vor
+	// setup() anhaelt, und GDB so lange warten lassen.
+	reset := func() {
+		input.setRunning(false)
+		time.Sleep(50 * time.Millisecond)
+		stopAnnounce := announce(traced{serLocked, "RST  "})
+		time.Sleep(300 * time.Millisecond)
+		stopAnnounce()
+	}
+	go func() { forwardFromGDB(serOut, conn, guard, resume, reset); done <- struct{}{} }()
 	go func() {
 		forwardFiltered(traced{conn, "<-AVR"}, ser, traced{os.Stdout, "OUT  "}, stop)
 		done <- struct{}{}

@@ -42,35 +42,39 @@ func (g *pauseGuard) stopped() {
 
 // forwardFromGDB reicht alles von GDB an den Stub weiter und erkennt dabei
 // Pause-Signale. Ein 0x03 zaehlt nur ausserhalb von Paketen ($...#xx).
-// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist.
-func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue func()) {
+// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist,
+// onReset nach "monitor reset" (qRcmd,7265736574). Solange onReset laeuft,
+// wird nichts weitergereicht: GDBs naechste Pakete warten, bis das Board
+// nach dem Reset wieder zuhoert.
+func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, onReset func()) {
 	buf := make([]byte, 512)
-	inPacket, escape, checksum, first := false, false, 0, false
-	var cmd byte
+	inPacket, escape, checksum := false, false, 0
+	var pkt []byte
 	for {
 		n, err := gdb.Read(buf)
-		resumed := false
+		resumed, reset := false, false
 		for _, b := range buf[:n] {
 			switch {
 			case checksum > 0:
 				checksum--
-			case inPacket && first:
-				cmd, first = b, false
-				if b == '#' {
-					inPacket, checksum = false, 2
-				}
 			case inPacket && escape:
 				escape = false
+				pkt = appendShort(pkt, b)
 			case inPacket && b == '}':
 				escape = true
 			case inPacket && b == '#':
 				inPacket, checksum = false, 2
-				if cmd == 'c' || cmd == 'C' {
+				if len(pkt) > 0 && (pkt[0] == 'c' || pkt[0] == 'C') {
 					resumed = true
 				}
-			case !inPacket && b == '$':
-				inPacket, first = true, true
-			case !inPacket && b == 0x03:
+				if string(pkt) == resetPacket {
+					reset = true
+				}
+			case inPacket:
+				pkt = appendShort(pkt, b)
+			case b == '$':
+				inPacket, pkt = true, pkt[:0]
+			case b == 0x03:
 				g.interrupted()
 			}
 		}
@@ -82,10 +86,25 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue fun
 		if resumed && onContinue != nil {
 			onContinue()
 		}
+		if reset && onReset != nil {
+			onReset()
+		}
 		if err != nil {
 			return
 		}
 	}
+}
+
+// resetPacket ist GDBs "monitor reset" (Text "reset" in Hex).
+const resetPacket = "qRcmd,7265736574"
+
+// appendShort merkt sich nur den Anfang eines Pakets; mehr braucht die
+// Erkennung nicht.
+func appendShort(p []byte, b byte) []byte {
+	if len(p) < 32 {
+		p = append(p, b)
+	}
+	return p
 }
 
 // lockedWriter verhindert, dass zwei Goroutinen gleichzeitig auf den
