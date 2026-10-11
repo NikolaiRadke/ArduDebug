@@ -1687,34 +1687,21 @@ static bool_t gdb_insert_breakpoint(Address_t rom_addr)
 static void gdb_remove_breakpoint(Address_t rom_addr)
 {
 #if (AVR8_BREAKPOINT_MODE == 1)  /* RAM only BP*/
-	uint8_t i, j;
+	/* ArduDebug: find it, move the rest one place down */
+	uint8_t i, n = gdb_ctx->breaks_cnt;
+	Address_t *b = gdb_ctx->breaks;
 
-	for (i = 0, j = 0; j < gdb_ctx->breaks_cnt; i++, j++)
-	{
-		/* i is target, j is source index */
-		if ( gdb_ctx->breaks[i] == rom_addr )
-		{
-			/* this is the BP to remove */
-			j++;
-			if ( j >= gdb_ctx->breaks_cnt )
-			{
-				gdb_ctx->breaks[i] = 0;
-				break;		/* removing the last BP in the array */
-			}
+	for (i = 0; i < n; i++) {
+		if (b[i] == rom_addr) {
+			for (n--; i < n; i++)
+				b[i] = b[i + 1];
+			b[n] = 0;
+			gdb_ctx->breaks_cnt = n;
+			break;
 		}
-
-		/* normally, this will do nothing but after the breakpoint-to-be-removed is found and
-		 * j is incremented, it will shift the remaining breakpoints. */
-		gdb_ctx->breaks[i] = gdb_ctx->breaks[j];
-
-	}	// end for
-
-	if ( j > i )	{/* if we found the BP to be removed, there is now one less */
-		gdb_ctx->breaks_cnt--;
-		gdb_ctx->breaks[i] = 0;
 	}
 
-	if ( gdb_ctx->breaks_cnt == 0 )
+	if ( n == 0 )
 		gdb_ctx->breakpoint_enabled = 0;	/* if there are no breakpoints */
 
 #else
