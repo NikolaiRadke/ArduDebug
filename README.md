@@ -24,11 +24,13 @@ Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino ID
   
 ![Screenshot](http://www.nikolairadke.de/aiduino/ardudebug_screenshot.png)
 
-## Serial output while debugging
+## Serial while debugging
 
-In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial.print()` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor.
+In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor, and what you type there (followed by Enter) arrives in `Serial.read()`.
 
-- `Serial.read()` receives nothing yet (`available()` returns 0). Tip: change variables directly in the debugger instead.
+- Each line you type ends with a newline (`\n`).
+- Input typed while the program is stopped is delivered as soon as it continues.
+- The receive buffer holds 63 characters, like the normal `Serial`.
 - The Serial Plotter is not available during debugging.
 - The baud rate in `Serial.begin()` is ignored.
 
