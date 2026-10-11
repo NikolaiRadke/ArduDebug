@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** * Release **V0.1.9** with optimized Windows Bridge and attachInterrupt() support.  
+* **11.10.2026** Release **V0.2.0**: debugging from the very start, variables view, attachInterrupt(), tested on Windows.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -84,7 +84,8 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - In debug builds, pin 2 (INT0) belongs to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
-- Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops wherever it currently is (usually inside `delay()`); press *Continue* (F5) to run to your breakpoint. *Pause* also stops wherever the program is.
+- Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.
+- A debug build waits for the debugger after every reset: without a debug session it does not start. Upload a normal build (*Optimize for Debugging* off) for normal use.
 
 ## Repository layout
 
