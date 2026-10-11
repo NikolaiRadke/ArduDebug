@@ -1842,56 +1842,28 @@ __attribute__((optimize("-Os")))
 static void gdb_read_memory(const uint8_t *buff)
 {
 	uint32_t addr, sz;
-	uint8_t i;
+	uint8_t i, b, sram;
+	uint8_t *p = gdb_ctx->buff;
 
 	buff += parse_hex(buff, &addr);
 	/* skip 'xxx,' */
 	parse_hex(buff + 1, &sz);
 
-	if ((addr & MEM_SPACE_MASK) == SRAM_OFFSET) {
-		addr &= ~MEM_SPACE_MASK;
-		uint8_t *ptr = (uint8_t*)(uintptr_t)addr;
-		for (i = 0; i < sz; ++i) {
-			uint8_t b = ptr[i];
-			/* XXX: this is ugly kludge, but what can I do?
-					AVR puts return address on stack with garbage in high
-					bits (they say you should mask out them, see Stack Pointer
-					section at every AVR datasheet), but how can I understand
-					that this word is ret address? To have valid backtrace in
-					gdb, I'am required to mask every word, which address belongs
-					to stack. */
-#if 0 // leads to wrong values of local variables!
-#if defined(__AVR_ATmega2560__)
-			/* TODO: for ATmega2560 the 3rd byte of PC should be masked out, but
-			 * how do we know when the 3rd byte is read?
-			 * The code for other derivatives can mask every word, but for 2560 we need to mask
-			 * only one byte of one of the two words that GDB reads...or does GDB read 3 bytes?
-			 * If yes, the code should be: */
-			 if (i == 0 && sz == 3 && addr >= gdb_ctx->sp)
-				b &= RET_ADDR_MASK;
-#else
-			if (i == 0 && sz == 2 && addr >= gdb_ctx->sp)
-				b &= RET_ADDR_MASK;
-#endif
-#endif
-			gdb_ctx->buff[i*2 + 0] = nib2hex(b >> 4);
-			gdb_ctx->buff[i*2 + 1] = nib2hex(b & 0xf);
-		}
-	}
-	else if ((addr & MEM_SPACE_MASK) == FLASH_OFFSET){
-		addr &= ~MEM_SPACE_MASK;
-		for (i = 0; i < sz; ++i) {
-			uint8_t byte = safe_pgm_read_byte(addr + i);
-			gdb_ctx->buff[i*2 + 0] = nib2hex(byte >> 4);
-			gdb_ctx->buff[i*2 + 1] = nib2hex(byte & 0xf);
-		}
-	}
+	if ((addr & MEM_SPACE_MASK) == SRAM_OFFSET)
+		sram = 1;
+	else if ((addr & MEM_SPACE_MASK) == FLASH_OFFSET)
+		sram = 0;
 	else {
 		/* posix EIO error */
 		gdb_send_reply(gdb_str_e05);
 		return;
 	}
-	gdb_ctx->buff_sz = sz * 2;
+	addr &= ~MEM_SPACE_MASK;
+	for (i = 0; i < sz; ++i) {
+		b = sram ? ((uint8_t*)(uintptr_t)addr)[i] : safe_pgm_read_byte(addr + i);
+		p = mem2hex(p, &b, 1);
+	}
+	gdb_ctx->buff_sz = p - gdb_ctx->buff;
 	gdb_send_buff(gdb_ctx->buff, gdb_ctx->buff_sz);
 }
 
@@ -1899,7 +1871,6 @@ __attribute__((optimize("-Os")))
 static void gdb_write_memory(const uint8_t *buff)
 {
 	uint32_t addr, sz;
-	uint8_t i;
 
 	buff += parse_hex(buff, &addr);
 	/* skip 'xxx,' */
@@ -1909,11 +1880,7 @@ static void gdb_write_memory(const uint8_t *buff)
 
 	if ((addr & MEM_SPACE_MASK) == SRAM_OFFSET) {
 		addr &= ~MEM_SPACE_MASK;
-		uint8_t *ptr = (uint8_t*)(uintptr_t)addr;
-		for ( i = 0; i < sz; ++i) {
-			ptr[i]  = hex2nib(*buff++) << 4;
-			ptr[i] |= hex2nib(*buff++);
-		}
+		hex2mem((uint8_t*)(uintptr_t)addr, buff, sz);
 	}
 	else if ((addr & MEM_SPACE_MASK) == FLASH_OFFSET){
 		/* posix EIO error */
