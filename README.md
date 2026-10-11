@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **10.10.2026** Release **V0.1.6** with serial output support.  
+* **11.10.2026** * **11.10.2026** Release **V0.1.7** with LTO menu: see and change your variables while debugging.
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -59,6 +59,7 @@ In debug builds the serial port belongs to the debugger. Your sketch can still u
 
 > [!TIP]
 > - Global variables are easiest to inspect in the *Watch* view: click *+* and enter the variable name.
+> - To see your global variables in the *Variables* view (section *Global*) and change them there, select *Tools → LTO → Disabled*. The sketch gets slightly larger; switch back to *Enabled* for the final upload.
 > - Close the Serial Monitor before debugging, and stop the debug session before uploading.
 
 ### Updating
