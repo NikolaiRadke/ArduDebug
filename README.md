@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** Release **V0.4.0** with much improved performance again und less flash usage (1.4 KB).  
+* **11.10.2026** Release **V0.5.0** with Peripherals view (ports, timers, ADC, etc.).  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -44,6 +44,13 @@ In debug builds the serial port belongs to the debugger. Your sketch can still u
 - The Serial Plotter is not available during debugging.
 - The baud rate in `Serial.begin()` is ignored.
 - A debug build always talks to the debugger, even without a debug session: the Serial Monitor shows only garbage. To use the Serial Monitor, upload with *Optimize for Debugging* turned off.
+
+## Peripherals view
+
+While the program is stopped, the **Cortex Peripherals** section of the debug sidebar shows the hardware registers of the ATmega328P: ports, timers, ADC, SPI, TWI, EEPROM, external interrupts and more, with every bit named. You can also change them: set `PORTB` to `0x20` and the LED on pin 13 lights up, while the program is still stopped.
+
+- `USART0` is read-only: it is the connection to the debugger.
+- `UDR0` and `SPDR` are not shown, because reading them changes the hardware state.
 
 ## Installation
 
@@ -119,6 +126,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - The release packages contain binaries of **avr-gdb** (GNU GDB 17.2, GPL-3.0-or-later):
   - Linux and macOS: built from the [GNU GDB](https://www.gnu.org/software/gdb/) sources with statically linked [GMP](https://gmplib.org/) and [MPFR](https://www.mpfr.org/) (LGPL), see `.github/workflows/gdb.yml`.
   - Windows: from the [AVR-GCC builds by Zak Kemble](https://github.com/ZakKemble/avr-gcc-build) (16.1.0).
+- ATmega328P.svd is generated from Microchip’s ATmega328P device file (ATDF, Apache-2.0).
 
 ## Credits
 
