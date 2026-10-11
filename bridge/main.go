@@ -141,12 +141,15 @@ func openFailed(name string, err error) {
 }
 
 func main() {
+	openTrace()
+	mark("bridge started")
 	port := gdbPort(os.Args[1:])
 
 	name, err := findArduino()
 	if err != nil {
 		fail("Arduino search", err)
 	}
+	mark("Arduino found on %s", name)
 
 	// Öffnen löst einen Reset aus. Das Kennbyte beendet den Bootloader und
 	// haelt den Stub vor setup() an; er quittiert mit 0x02.
@@ -156,9 +159,11 @@ func main() {
 		openFailed(name, err)
 	}
 	defer ser.Close()
+	mark("port open")
 	stopAnnounce := announce(ser)
 	ready := waitReady(ser)
 	stopAnnounce()
+	mark("stub ready: %v", ready)
 	if !ready {
 		fmt.Printf("Warn : no answer from the board. Was the sketch uploaded with " +
 			"Sketch -> Optimize for Debugging turned on?\n")
@@ -173,15 +178,16 @@ func main() {
 	fmt.Printf("Info : ArduDebug: Arduino on %s\n", name)
 	fmt.Printf("Info : avr.cpu: hardware has 4 breakpoints, 0 watchpoints\n")
 	fmt.Printf("Info : Listening on port %d for gdb connections\n", port)
+	mark("listening on port %d", port)
 
 	conn, err := ln.Accept()
 	if err != nil {
 		fail("GDB connection", err)
 	}
 	defer conn.Close()
+	mark("GDB connected")
 
 	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
-	openTrace()
 	done := make(chan struct{}, 2)
 	serLocked := &lockedWriter{w: ser} // GDB und Eingaben schreiben beide hierhin
 	serOut := traced{serLocked, "GDB->"}

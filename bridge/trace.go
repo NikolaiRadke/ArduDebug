@@ -29,3 +29,11 @@ func (t traced) Write(p []byte) (int, error) {
 	}
 	return t.w.Write(p)
 }
+
+// mark schreibt eine Zeitmarke ins Log, um zu sehen, wo beim Start die Zeit
+// bleibt.
+func mark(format string, args ...any) {
+	if traceFile != nil {
+		fmt.Fprintf(traceFile, "%s MARK  %s\n", time.Now().Format("15:04:05.000"), fmt.Sprintf(format, args...))
+	}
+}

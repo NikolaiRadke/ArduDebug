@@ -659,7 +659,8 @@ static volatile uint16_t debug_pause_sp;
    first variable in .data and in .bss shares its address with the section
    symbols and would be missing from the "Global" list. These two bytes take
    the first place in each section (plain .data/.bss come before .data.* and
-   .bss.* in the linker script). debug_init() uses them so they are kept. */
+   .bss.* in the linker script). debug_init() uses them so they are kept.
+   The .bss byte doubles as the flag "debugger announced", see debug_init(). */
 static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
 static volatile uint8_t debug_bss_pad __attribute__((section(".bss")));
 
@@ -927,7 +928,7 @@ static unsigned char regs[GDB_NUMREGBYTES];	/* Copy of all registers */
 /* Initialize the debug driver. */
 void debug_init(void)
 {
-	debug_bss_pad = debug_data_pad;	/* keep the pads, see above */
+	if (debug_data_pad) { }	/* keep the .data pad, see above */
 
 	/* Init gdb context */
 	gdb_ctx = &ctx;
@@ -1000,8 +1001,11 @@ void debug_init(void)
 	/* ArduDebug: listen 20 ms for the bridge's "debugger is coming" (0x02,
 	   sent every 10 ms after the reset). If it comes, the UART interrupt
 	   stops the program right here, before setup(). Without a debugger the
-	   sketch just starts 20 ms later. Interrupts are on: init() did sei(). */
-	_delay_ms(20);
+	   sketch just starts 20 ms later. Interrupts are on: init() did sei().
+	   The loop ends as soon as the flag is set: once GDB continues with a
+	   breakpoint set, every instruction is checked and runs very slowly. */
+	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
+		_delay_us(100);
 }
 
 #if ( (AVR8_BREAKPOINT_MODE == 0) || (AVR8_LOAD_SUPPORT == 1) || (AVR8_BREAKPOINT_MODE == 2) )
@@ -1239,7 +1243,8 @@ static void handle_exception(void)
 			/* ArduDebug: "debugger is coming". The bridge sends this after the
 			   reset until we answer. The first one stops the program right
 			   after debug_init(), before setup(); we confirm with 0x02 and
-			   wait here for GDB. */
+			   wait here for GDB. The flag ends the wait in debug_init(). */
+			debug_bss_pad = 1;
 			if ( gdb_ctx->target_running )
 				return;
 			putDebugChar(0x02);
