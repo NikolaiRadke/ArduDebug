@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** Release **V0.5.0** with Peripherals view (ports, timers, ADC, etc.).  
+* **11.10.2026** Release **V0.6.0** with all interrupts keep running while breakpoints are set: millis(), tone(), Servo, Wire, etc.
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -106,8 +106,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently.
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - No watchpoints (stopping when a variable changes).
-- While the program is stopped, interrupts are off: millis() and micros() do not count on, but hardware PWM keeps running.
-- While the program runs with breakpoints set, it runs slower, and interrupts other than Timer0 (millis()) do not run (e.g. Timer1, pin change).
+While the program is stopped or single-stepping, interrupts do not run: millis() does not count on, and Servo pulses or tone() stop. Hardware PWM (analogWrite) keeps running.
 - Local variables are often shown as *optimized out*, because debug builds are still optimized for size.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.

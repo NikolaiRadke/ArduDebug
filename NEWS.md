@@ -2,6 +2,7 @@
 
 ## 2026
 
+* **11.10.2026** Release **V0.6.0** with all interrupts keep running while breakpoints are set: millis(), tone(), Servo, Wire, etc.
 * **11.10.2026** Release **V0.5.0** with Peripherals view (ports, timers, ADC, etc.).  
 * **11.10.2026** Release **V0.4.0** with much improved performance again und less flash usage (1.4 KB).  
 * **11.10.2026** Release **V0.3.1** with much improved performance.  
