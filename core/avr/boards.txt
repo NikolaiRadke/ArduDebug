@@ -138,6 +138,7 @@ leonardo.build.board=AVR_LEONARDO
 leonardo.build.core=arduino
 leonardo.build.variant=leonardo
 leonardo.build.extra_flags={build.usb_flags}
+leonardo.debug.svd_file={runtime.platform.path}/ATmega32U4.svd
 
 leonardo.menu.lto.on=Enabled (smaller code)
 leonardo.menu.lto.on.build.lto=-flto
