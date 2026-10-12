@@ -91,7 +91,15 @@ func announce(ser io.Writer) func() {
 			}
 		}
 	}()
-	return func() { close(stop); <-done }
+	// Nicht ewig warten: Liest das Board nicht mit (Leonardo ohne Debug-
+	// Build), blockiert das Schreiben irgendwann.
+	return func() {
+		close(stop)
+		select {
+		case <-done:
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
 }
 
 // readyMark ist die Quittung des Stubs auf das Kennbyte: Er steht jetzt vor
@@ -103,23 +111,71 @@ var readyTimeout = 3 * time.Second
 
 // waitReady liest den Port, bis die Quittung kommt (true) oder readyTimeout
 // verstrichen ist (false). Andere Zeichen, etwa vom Bootloader, verfallen.
-func waitReady(ser serial.Port) bool {
+// lost meldet, dass der Port verschwunden ist: Ein Leonardo startet neu,
+// wenn sich der Debugger meldet, und meldet sich am USB neu an.
+func waitReady(ser serial.Port, name string) (ready, lost bool) {
 	ser.SetReadTimeout(50 * time.Millisecond)
 	defer ser.SetReadTimeout(serial.NoTimeout)
 	deadline := time.Now().Add(readyTimeout)
+	nextCheck := time.Now()
 	buf := make([]byte, 64)
 	for time.Now().Before(deadline) {
 		n, err := ser.Read(buf)
 		if err != nil {
-			return false
+			return false, true
 		}
 		for _, b := range buf[:n] {
 			if b == readyMark {
-				return true
+				return true, false
+			}
+		}
+		if time.Now().After(nextCheck) {
+			nextCheck = time.Now().Add(250 * time.Millisecond)
+			if !portPresent(name) {
+				return false, true
 			}
 		}
 	}
+	return false, false
+}
+
+// portPresent: Ist der Port noch im System?
+func portPresent(name string) bool {
+	ports, err := serial.GetPortsList()
+	if err != nil {
+		return true
+	}
+	for _, p := range ports {
+		if p == name {
+			return true
+		}
+	}
 	return false
+}
+
+// reconnectTimeout: So lange darf ein Leonardo für den Neustart brauchen.
+var reconnectTimeout = 10 * time.Second
+
+// reopen wartet, bis sich das Board nach einem Neustart wieder am USB
+// meldet, und öffnet den Port erneut.
+func reopen() (serial.Port, string, error) {
+	deadline := time.Now().Add(reconnectTimeout)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		time.Sleep(200 * time.Millisecond)
+		name, err := findArduino()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		ser, err := openPort(name)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		return ser, name, nil
+	}
+	return nil, "", lastErr
 }
 
 // openFailed erklärt, warum der serielle Port nicht aufging, und beendet.
@@ -158,11 +214,24 @@ func main() {
 	if err != nil {
 		openFailed(name, err)
 	}
-	defer ser.Close()
 	mark("port open")
 	stopAnnounce := announce(ser)
-	ready := waitReady(ser)
+	ready, lost := waitReady(ser, name)
 	stopAnnounce()
+	if lost {
+		// Leonardo: startet für den Debugger neu und meldet sich neu an
+		ser.Close()
+		mark("port lost, board restarts")
+		ser, name, err = reopen()
+		if err != nil {
+			fail("board did not come back after the restart", err)
+		}
+		mark("port open again on %s", name)
+		stopAnnounce = announce(ser)
+		ready, _ = waitReady(ser, name)
+		stopAnnounce()
+	}
+	defer ser.Close()
 	mark("stub ready: %v", ready)
 	if !ready {
 		fmt.Printf("Warn : no answer from the board. Was the sketch uploaded with " +

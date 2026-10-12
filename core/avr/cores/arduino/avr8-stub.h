@@ -302,6 +302,8 @@ void debug_rx_char(uint8_t c);
 /* ArduDebug (ATmega32U4): the USB interrupt of the core calls this when the
    debugger sent data. */
 void debug_usb_rx(void);
+/* ArduDebug (ATmega32U4): 1 after a restart requested by the debugger */
+extern uint8_t debug_restarted;
 
 
 /**

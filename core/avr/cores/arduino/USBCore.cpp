@@ -382,6 +382,11 @@ void InitEndpoints()
 	}
 	UERST = 0x7E;	// And reset them
 	UERST = 0;
+#ifdef ARDUDEBUG
+	// ArduDebug: report data from the debugger, see debug_usb_rx()
+	UENUM = CDC_RX;
+	UEIENX = (1 << RXOUTE);
+#endif
 }
 
 //	Handle CLASS_INTERFACE requests

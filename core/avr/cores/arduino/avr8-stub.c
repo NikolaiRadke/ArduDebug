@@ -1048,10 +1048,14 @@ void debug_init(void)
 	   The loop ends as soon as the flag is set: once GDB continues with a
 	   breakpoint set, every instruction is checked and runs very slowly. */
 #if AVR8_USB_CDC
-	/* ArduDebug: main() calls this once the bridge has opened the USB
-	   port. Stop here and wait for GDB. */
+	/* ArduDebug: after a restart by the debugger, main() calls this once
+	   the bridge has opened the USB port again: stop here and wait for GDB.
+	   Otherwise the sketch just starts; the debugger can connect later. */
 	debug_usb_clear();
-	breakpoint();
+	if (debug_restarted) {
+		debug_restarted = 0;
+		breakpoint();
+	}
 #else
 	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
 		_delay_us(100);
@@ -1114,6 +1118,32 @@ static void gdb_no_bootloder_prep(void) {
 #define DBG_EP_IN	3	/* CDC_TX */
 
 static void uart_init(void) { }
+
+/* ArduDebug: when the debugger connects while the sketch runs, the board
+   restarts through the watchdog and the sketch starts over, stopped before
+   setup(), like a Uno after its reset. The request survives the reset at
+   0x0800, the address where the core leaves the key for the bootloader;
+   any other value than the bootloader key just starts the sketch. */
+#define DEBUG_KEY_ADDR		((volatile uint16_t *)0x0800)
+#define DEBUG_RESTART_KEY	0xDEB6
+uint8_t debug_restarted __attribute__((section(".noinit")));
+
+/* Runs right after the reset, before the variables are initialized */
+__attribute__((naked, used, section(".init3")))
+static void debug_check_restart(void)
+{
+	debug_restarted = (*DEBUG_KEY_ADDR == DEBUG_RESTART_KEY);
+	*DEBUG_KEY_ADDR = 0;
+	MCUSR = 0;
+	wdt_disable();
+}
+
+static void debug_restart(void)
+{
+	*DEBUG_KEY_ADDR = DEBUG_RESTART_KEY;
+	wdt_enable(WDTO_15MS);
+	for (;;) ;
+}
 
 /* ArduDebug: set by debug_usb_rx() when the debugger sent something while
    the program runs; cleared once the stub has read the whole packet. */
@@ -1378,8 +1408,12 @@ static void handle_exception(void)
 			   after debug_init(), before setup(); we confirm with 0x02 and
 			   wait here for GDB. The flag ends the wait in debug_init(). */
 			debug_bss_pad = 1;
-			if ( gdb_ctx->target_running )
+			if ( gdb_ctx->target_running ) {
+#if AVR8_USB_CDC
+				debug_restart();	/* the debugger connects: start over */
+#endif
 				return;
+			}
 			putDebugChar(0x02);
 			break;
 

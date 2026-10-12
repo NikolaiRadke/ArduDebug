@@ -46,8 +46,11 @@ int main(void)
 	USBDevice.attach();
 #ifdef ARDUDEBUG
 	// ArduDebug (Leonardo/Micro): the debugger talks over the USB port.
-	// Wait until the bridge has opened it, then stop for GDB.
-	while (!Serial) ;
+	// After a restart by the debugger, wait until the bridge has opened the
+	// port again; debug_init() then stops for GDB. Otherwise the sketch
+	// starts at once.
+	if (debug_restarted)
+		while (!Serial) ;
 	debug_init();
 #endif
 #endif
