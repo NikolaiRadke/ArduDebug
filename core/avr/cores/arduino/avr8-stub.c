@@ -678,6 +678,9 @@ static const uint8_t *hex2mem(uint8_t *dst, const uint8_t *src, uint8_t n)
 static uint8_t getDebugChar(void);		/* Read a single character from the serial port */
 static void putDebugChar(uint8_t c);	/* Write a single character to serial port */
 static void uart_init(void);			/* Our function to initialize UART */
+#if AVR8_USB_CDC
+static void debug_usb_clear(void);
+#endif
 static void handle_exception(void);	/* Function called when the program stops */
 static inline void gdb_enable_swinterrupt();
 static inline void gdb_disable_swinterrupt();
@@ -1047,6 +1050,7 @@ void debug_init(void)
 #if AVR8_USB_CDC
 	/* ArduDebug: main() calls this once the bridge has opened the USB
 	   port. Stop here and wait for GDB. */
+	debug_usb_clear();
 	breakpoint();
 #else
 	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
@@ -1111,6 +1115,17 @@ static void gdb_no_bootloder_prep(void) {
 
 static void uart_init(void) { }
 
+/* ArduDebug: set by debug_usb_rx() when the debugger sent something while
+   the program runs; cleared once the stub has read the whole packet. */
+static volatile uint8_t debug_usb_pending;
+
+/* Packet read: let the USB interrupt report the next one (see debug_usb_rx()) */
+static void debug_usb_clear(void)
+{
+	debug_usb_pending = 0;
+	UEIENX |= _BV(RXOUTE);
+}
+
 /* Send what is waiting in the IN bank */
 static void usb_flush(void)
 {
@@ -1138,8 +1153,10 @@ static uint8_t getDebugChar(void)
 		WDTRESET();
 	}
 	c = UEDATX;
-	if (!UEBCLX)
+	if (!UEBCLX) {
 		UEINTX = 0x6B;		/* bank read completely: release it */
+		debug_usb_clear();
+	}
 	return c;
 }
 
@@ -1234,10 +1251,23 @@ static inline void gdb_disable_swinterrupt()
 #endif
 }
 
+#if AVR8_USB_CDC
+/* ArduDebug: called from the USB interrupt of the core (USBCore.cpp) when
+   the debugger sent data. Like the UART interrupt on the Uno, it gets the
+   stub going: the software interrupt fires right after the return. */
+void debug_usb_rx(void)
+{
+	UENUM = DBG_EP_OUT;
+	UEIENX &= ~_BV(RXOUTE);		/* again once the packet was read */
+	debug_usb_pending = 1;
+	gdb_enable_swinterrupt();
+}
+#endif
+
 /** Macro which is true if there is a pending interrupt from UART Rx
  * */
 #if AVR8_USB_CDC
-#define	UART_RXINT_PENDING()  0
+#define	UART_RXINT_PENDING()  (debug_usb_pending)
 #else
 #define	UART_RXINT_PENDING()  (UCSRA & (1<<RXC))
 #endif
@@ -2145,10 +2175,12 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 
 #if (AVR8_BREAKPOINT_MODE == 1) && !defined(__AVR_ATmega2560__)
 #if AVR8_USB_CDC	/* no UART of our own (USB: see getDebugChar()) */
-	#define FP_UART_CHECK	""
+	#define FP_UART_CHECK	"lds	r24, %[ucsra]\n"	/* debugger data waiting: full path */ \
+				"tst	r24\n" \
+				"brne	2f\n"
 	#define FP_UART_MASK	""
 	#define FP_UART_UNMASK	""
-	#define FP_UCSRA	0
+	#define FP_UCSRA	&debug_usb_pending
 	#define FP_RXC		0
 	#define FP_UCSRB	0
 	#define FP_NORXCIE	0
@@ -2239,7 +2271,7 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		:
 		: [step]  "i" (&ctx.singlestep_enabled),
 		  [pause] "i" (&debug_pause_req),
-		  [ucsra] "n" (FP_UCSRA),
+		  [ucsra] "i" (FP_UCSRA),
 		  [rxc]   "n" (FP_RXC),
 		  [mask]  "n" (RET_ADDR_MASK),
 		  [cnt]   "i" (&ctx.breaks_cnt),
@@ -2283,6 +2315,17 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 #ifdef AVR8_STUB_DEBUG
 	G_Debug_INTxCount++;
 	G_LastPC = gdb_ctx->pc << 1;	/* convert to byte address */
+#endif
+
+#if AVR8_USB_CDC
+	/* ArduDebug: data from the debugger while no breakpoint is set: handle it
+	   like the UART interrupt does on the Uno (pause, typed characters). */
+	if ( debug_usb_pending && !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled ) {
+		handle_exception();
+		if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req != 2 )
+			gdb_disable_swinterrupt();
+		goto out;
+	}
 #endif
 
 	/* if single-stepping, go to trap */

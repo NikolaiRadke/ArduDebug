@@ -19,6 +19,9 @@
 
 #include "USBAPI.h"
 #include "PluggableUSB.h"
+#ifdef ARDUDEBUG
+#include "avr8-stub.h"
+#endif
 #include <stdlib.h>
 
 #if defined(USBCON)
@@ -562,6 +565,11 @@ bool SendDescriptor(USBSetup& setup)
 //	Endpoint 0 interrupt
 ISR(USB_COM_vect)
 {
+#ifdef ARDUDEBUG
+	// ArduDebug: data from the debugger on the CDC endpoint
+	if (UEINT & (1 << CDC_RX))
+		debug_usb_rx();
+#endif
     SetEP(0);
 	if (!ReceivedSetupInt())
 		return;

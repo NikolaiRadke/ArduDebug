@@ -299,6 +299,10 @@ void debug_pause_point(void);
  */
 void debug_rx_char(uint8_t c);
 
+/* ArduDebug (ATmega32U4): the USB interrupt of the core calls this when the
+   debugger sent data. */
+void debug_usb_rx(void);
+
 
 /**
  * Send text message to gdb console.
