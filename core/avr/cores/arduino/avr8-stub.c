@@ -158,8 +158,12 @@ typedef uint8_t bool_t;
 
 /* Set default value if baudrate is not provided */
 #ifndef AVR8_USER_BAUDRATE
-#if F_CPU >= 8000000L
+#if F_CPU >= 16000000L
 	#define GDB_USART_BAUDRATE   115200L
+#elif F_CPU >= 8000000L
+	/* ArduDebug: 115200 would be 3.5 % off at 8 MHz, 57600 only 2.1 %.
+	   The bridge uses the same rule (build.f_cpu). */
+	#define GDB_USART_BAUDRATE   57600L
 #elif F_CPU >= 1000000L
 	#define GDB_USART_BAUDRATE   9600L
 #elif F_CPU >= 128000L
@@ -448,8 +452,8 @@ typedef uint8_t bool_t;
 	#if AVR8_UART_NUMBER != 0 && AVR8_UART_NUMBER != 1
 		#error For ATmega1284 only UART 0 or 1 can be used. Plese change the AVR8_UART_NUMBER to 0 or 1.
 	#endif
-#elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
-	/* There is only USART0 on ATmega328*/
+#elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+	/* There is only USART0 on ATmega328 (ArduDebug: and on the ATmega168) */
 	#if AVR8_UART_NUMBER != 0
 		#error For ATmega328 only UART0 can be used. Plese change the AVR8_UART_NUMBER to 0.
 	#endif
@@ -489,7 +493,7 @@ typedef uint8_t bool_t;
 #define		U2X		MAKE_UART_NAME(U2X, AVR8_UART_NUMBER, )
 
 /* Define the USART vector name */
-#if defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
+#if defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 	#define	UART_ISR_VECTOR	USART_RX_vect
 #else
 	/* the other MCUs have USART number in the ISR name */

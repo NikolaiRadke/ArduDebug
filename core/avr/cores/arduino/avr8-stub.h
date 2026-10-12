@@ -192,7 +192,13 @@ extern "C" {
  */
   
 #ifndef	AVR8_SWINT_SOURCE
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	/* ArduDebug: on the Mega INT0 is pin 21 = SCL. INT6 (PE6) is not
+	   connected to any pin of the board, so the debugger takes no pin. */
+	#define	AVR8_SWINT_SOURCE	(6)
+#else
 	#define	AVR8_SWINT_SOURCE	(0)
+#endif
 #endif
 
 

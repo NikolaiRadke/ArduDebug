@@ -21,12 +21,27 @@ import (
 	"go.bug.st/serial/enumerator"
 )
 
-// USB-Hersteller-Kennungen: Arduino, Arduino.org, CH340-Klone, FTDI
-var knownVIDs = []string{"2341", "2A03", "1A86", "0403"}
+// USB-Hersteller-Kennungen: Arduino, Arduino.org, CH340-Klone, FTDI,
+// CP210x-Klone, SparkFun (LilyPad USB), Adafruit (Circuit Playground)
+var knownVIDs = []string{"2341", "2A03", "1A86", "0403", "10C4", "1B4F", "239A"}
 
-// USB-Produktkennungen der Boards mit eigenem USB (ATmega32U4): Leonardo,
-// Micro. Sie starten fuer den Debugger ueber den Stub neu, nicht ueber DTR.
-var nativeUSBPIDs = []string{"8036", "8037"}
+// USB-Kennungen (VID:PID) der Boards mit eigenem USB (ATmega32U4), wie
+// der Sketch sie meldet. Sie starten fuer den Debugger ueber den Stub neu,
+// nicht ueber DTR. Aus der boards.txt von Arduino AVR Boards 1.8.8.
+var nativeUSBIDs = []string{
+	"2341:8036", "2A03:8036", // Leonardo
+	"2A03:8040",              // Leonardo ETH
+	"2341:8037", "2A03:8037", // Micro
+	"2341:803C", "2A03:803C", // Esplora
+	"2341:8041", "2A03:8041", // Yun
+	"2A03:8050",              // Yun Mini
+	"2A03:8056",              // Industrial 101
+	"2A03:8001",              // Linino One
+	"2341:8038", "2A03:8038", // Robot Control
+	"2341:8039", "2A03:8039", // Robot Motor
+	"1B4F:9208", // LilyPad Arduino USB
+	"239A:8011", // Circuit Playground
+}
 
 // gdbPort liest "gdb_port N" aus den Parametern, die Cortex-Debug übergibt.
 func gdbPort(args []string) int {
@@ -47,6 +62,21 @@ func idePort(args []string) string {
 		return m[1]
 	}
 	return ""
+}
+
+// baudRate der Verbindung zum Stub: 115200, bei Boards unter 16 MHz 57600
+// (wie im Stub, siehe GDB_USART_BAUDRATE).
+var baudRate = 115200
+
+// ideFCPU liest "ardudebug_fcpu F" (build.f_cpu, etwa 16000000L); 0, falls
+// nicht uebergeben.
+func ideFCPU(args []string) int {
+	m := regexp.MustCompile(`ardudebug_fcpu\s+(\d+)`).FindStringSubmatch(strings.Join(args, " "))
+	if m == nil {
+		return 0
+	}
+	f, _ := strconv.Atoi(m[1])
+	return f
 }
 
 // ideMCU liest "ardudebug_mcu MCU" (build.mcu des gewaehlten Boards).
@@ -88,8 +118,8 @@ func findBoard(prefer string, kind int) (name string, native bool, err error) {
 		return "", false, err
 	}
 	isNative := func(p *enumerator.PortDetails) bool {
-		for _, pid := range nativeUSBPIDs {
-			if strings.EqualFold(p.PID, pid) {
+		for _, id := range nativeUSBIDs {
+			if strings.EqualFold(p.VID+":"+p.PID, id) {
 				return true
 			}
 		}
@@ -135,7 +165,7 @@ func fail(msg string, err error) {
 func openPort(name string) (serial.Port, error) {
 	deadline := time.Now().Add(portRetry)
 	for {
-		ser, err := serial.Open(name, &serial.Mode{BaudRate: 115200})
+		ser, err := serial.Open(name, &serial.Mode{BaudRate: baudRate})
 		var pe *serial.PortError
 		if err == nil || !errors.As(err, &pe) || pe.Code() != serial.PortBusy || time.Now().After(deadline) {
 			return ser, err
@@ -280,7 +310,10 @@ func main() {
 	port := gdbPort(os.Args[1:])
 
 	mcu := ideMCU(os.Args[1:])
-	mark("IDE port: %q, MCU: %q", idePort(os.Args[1:]), mcu)
+	if f := ideFCPU(os.Args[1:]); f > 0 && f < 16000000 {
+		baudRate = 57600
+	}
+	mark("IDE port: %q, MCU: %q, baud %d", idePort(os.Args[1:]), mcu, baudRate)
 	// Ein Leonardo-Build sucht nur Boards mit eigenem USB, ein Uno-Build nur
 	// solche ohne, damit ein zusaetzlich angeschlossenes Board unberuehrt
 	// bleibt. Ohne Angabe (alte platform.txt) wie bisher das erste.

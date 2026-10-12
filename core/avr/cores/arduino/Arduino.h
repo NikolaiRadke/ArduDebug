@@ -152,7 +152,14 @@ void attachInterrupt(uint8_t interruptNum, void (*userFunc)(void), int mode);
 void detachInterrupt(uint8_t interruptNum);
 
 void setup(void);
+#ifdef ARDUDEBUG
+/* ArduDebug: keep loop() a real function. Inlined into main(), LTO may move
+   parts of it in front of the endless loop, where the debugger's start
+   breakpoint on loop() would be passed only once and could be missed. */
+void loop(void) __attribute__((noinline));
+#else
 void loop(void);
+#endif
 
 // Get the bit location within the hardware port of the given virtual pin.
 // This comes from the pins_*.c file for the active board configuration.

@@ -40,7 +40,7 @@
 #if defined(__AVR_ATmega32U4__)
 #define DEBUG_INT0 EXTERNAL_INT_4	// Leonardo: INT6 is interrupt 4 (pin 7)
 #elif defined(EICRA) && defined(EICRB)
-#define DEBUG_INT0 EXTERNAL_INT_2	// Mega: INT0 is interrupt 2 (pin 21)
+#define DEBUG_INT0 EXTERNAL_INT_6	// Mega: INT6 (PE6), not on any pin of the board
 #else
 #define DEBUG_INT0 EXTERNAL_INT_0	// Uno/Nano: INT0 is interrupt 0 (pin 2)
 #endif
@@ -380,15 +380,15 @@ IMPLEMENT_ISR(INT7_vect, EXTERNAL_INT_7)
 
 #elif defined(EICRA) && defined(EICRB)
 
-#ifndef ARDUDEBUG
 IMPLEMENT_ISR(INT0_vect, EXTERNAL_INT_2)
-#endif
 IMPLEMENT_ISR(INT1_vect, EXTERNAL_INT_3)
 IMPLEMENT_ISR(INT2_vect, EXTERNAL_INT_4)
 IMPLEMENT_ISR(INT3_vect, EXTERNAL_INT_5)
 IMPLEMENT_ISR(INT4_vect, EXTERNAL_INT_0)
 IMPLEMENT_ISR(INT5_vect, EXTERNAL_INT_1)
+#ifndef ARDUDEBUG
 IMPLEMENT_ISR(INT6_vect, EXTERNAL_INT_6)
+#endif
 IMPLEMENT_ISR(INT7_vect, EXTERNAL_INT_7)
 
 #else
