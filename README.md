@@ -1,36 +1,42 @@
 ![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner_4.png)
 # ArduDebug
 
-Breakpoint debugging for the Arduino Uno/Nano (and maybe more) in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
+Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **11.10.2026** Release **V0.6.0** with all interrupts keep running while breakpoints are set: millis(), tone(), Servo, Wire, etc.
+* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards (incl. Mega) and a reliable stop at the start of `loop()`.
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
 
+All boards of *Arduino AVR Boards* can be selected under *Tools → Board → ArduDebug AVR Boards* (except Gemma and NG, which have a different chip). Only some of them have been tested so far:
+
 | Board | Chip | Status |
 |---|---|---|
 | Arduino Uno | ATmega328P | tested |
-| Arduino Nano (incl. old bootloader) | ATmega328P | tested |
-| Arduino Mega 2560 | ATmega2560 | compiles, not yet tested |
-| Leonardo, Micro and other ATmega32U4 boards | ATmega32U4 | not supported by avr8-stub |
+| Arduino Nano | ATmega328P | tested |
+| Arduino Leonardo | ATmega32U4 | tested (Linux) |
+| Micro, Esplora, Yún, LilyPad USB and other ATmega32U4 boards | ATmega32U4 | should work, not tested |
+| Mini, Pro, Ethernet, Fio, BT, LilyPad and other ATmega328P/168 boards | ATmega328P/168 | should work, not tested |
+| Arduino Mega 2560, Mega ADK | ATmega2560 | should work, not tested |
+| Arduino Mega with ATmega1280 (*Tools → Processor*) | ATmega1280 | should work, not tested |
 
 ## Testers wanted
 
-ArduDebug is tested on Linux and Windows with the Uno and the Nano (new bootloader). Help is welcome for:
+ArduDebug is tested on Linux and Windows with the Uno and the Nano, and on Linux with the Leonardo. Help is welcome for:
 
 - **macOS** (Apple Silicon and Intel): the package includes macOS builds, but they have never been tried.
-- **Nano with the old bootloader**: should work, but is untested since V0.3.0.
-- **Mega 2560**: the core is prepared, but the board is not in the package yet.
+- **Leonardo on Windows**.
+- **Mega 2560** and other untested boards from the list above.
+- **8 MHz boards** (Pro 3.3 V, LilyPad, Fio): they use 57600 baud, which has never been tried.
 
 If you can test one of these, please open an [issue](https://github.com/NikolaiRadke/ArduDebug/issues) and tell me what happened, whether it works or not.
 
 ## How it works
 
-- **avr8-stub** (by Jan Dolinay) runs on Uno/Nano and speaks the GDB protocol over the serial line.
+- **avr8-stub** (by Jan Dolinay) runs on the board and speaks the GDB protocol over the serial line, on the Leonardo and other ATmega32U4 boards directly over USB.
 - The stub is built into the core and only included when *Sketch → Optimize for Debugging* is enabled. Your sketch needs no debug code.
-- A small **bridge** program, started by the IDE, finds the Uno automatically and connects GDB to it.
+- A small **bridge** program, started by the IDE, finds the board automatically and connects GDB to it.
   
 ![Screenshot](http://www.nikolairadke.de/aiduino/ardudebug_screenshot.png)
 
@@ -47,17 +53,17 @@ In debug builds the serial port belongs to the debugger. Your sketch can still u
 
 ## Peripherals view
 
-While the program is stopped, the **Cortex Peripherals** section of the debug sidebar shows the hardware registers of the ATmega328P: ports, timers, ADC, SPI, TWI, EEPROM, external interrupts and more, with every bit named. You can also change them: set `PORTB` to `0x20` and the LED on pin 13 lights up, while the program is still stopped.
+While the program is stopped, the **Cortex Peripherals** section of the debug sidebar shows the hardware registers of the chip (ATmega328P, ATmega32U4 or ATmega2560): ports, timers, ADC, SPI, TWI, EEPROM, external interrupts and more, with every bit named. You can also change them: set `PORTB` to `0x20` (Uno) or `PORTC` to `0x80` (Leonardo) and the LED on pin 13 lights up, while the program is still stopped.
 
-- `USART0` is read-only: it is the connection to the debugger.
-- `UDR0` and `SPDR` are not shown, because reading them changes the hardware state.
+- `USART0` is read-only on Uno and Mega: it is the connection to the debugger.
+- Data registers like `UDR0` and `SPDR` are not shown, because reading them changes the hardware state. The USB registers of the ATmega32U4 are not shown either.
 
 ## Installation
 
 ### Requirements
 
 - Arduino IDE 2.3 or newer (Linux or Windows)
-- An Arduino Uno or Nano and a USB cable – nothing else
+- A supported board and a USB cable – nothing else
 
 ### Install ArduDebug
 
@@ -71,7 +77,7 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 
 ### First test
 
-1. Select *Tools → Board → ArduDebug AVR Boards → Arduino Uno* (or *Nano*) and the port.
+1. Select *Tools → Board → ArduDebug AVR Boards → Arduino Uno* (or your board) and the port.
 2. Open the *Blink* example and enable *Sketch → Optimize for Debugging*.
 3. Upload the sketch.
 4. Click left of a line number in `loop()` to set a breakpoint (red dot).
@@ -95,22 +101,26 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
+- **Leonardo: upload fails** because the board is not found: press the reset button on the board right when the IDE starts uploading.
 - **Pause** stops right before the next pass of `loop()`, in the core's `main.cpp`. Press *Step Into* (F11) to enter `loop()`. If `loop()` doesn't return within a second, the program stops wherever it is, e.g. inside `delay()`; use *Step Out* (Shift+F11) to get back to your sketch.
 - **Reporting a problem:** please attach `ardudebug-bridge.log` from your temp folder (Linux/macOS: `/tmp`, Windows: `%TEMP%`). It records the communication of the last debug session.
 
 ## Limitations
 
-- The stub needs about 2.5 KB of flash and about 260 bytes of RAM in debug builds. Normal builds are unaffected.
-- In debug builds, pins 0 and 1 (serial) and pin 2 (INT0) belong to the debugger: `attachInterrupt()` works on pin 3, but not on pin 2.
+- The stub needs about 2.5 KB of flash (Leonardo about 3 KB) and up to about 260 bytes of RAM in debug builds. Normal builds are unaffected. On boards with an ATmega168 (16 KB flash, 1 KB RAM) this leaves less room for the sketch.
+- In debug builds, some pins belong to the debugger:
+  - Uno, Nano and other ATmega328P/168 boards: pins 0 and 1 (serial) and pin 2 (INT0). `attachInterrupt()` works on pin 3, but not on pin 2.
+  - Leonardo and other ATmega32U4 boards: pin 7 (INT6). `Serial1` on pins 0 and 1 is free.
+  - Mega: pins 0 and 1 (serial). The debugger uses INT6, which has no pin on the Mega.
 - Up to 8 breakpoints at a time.
-- While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently.
+- While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently. On the Mega 2560, interrupts (millis(), tone(), Servo …) also stop while breakpoints are set.
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - No watchpoints (stopping when a variable changes).
-While the program is stopped or single-stepping, interrupts do not run: millis() does not count on, and Servo pulses or tone() stop. Hardware PWM (analogWrite) keeps running.
+- While the program is stopped or single-stepping, interrupts do not run: millis() does not count on, and Servo pulses or tone() stop. Hardware PWM (analogWrite) keeps running.
 - Local variables are often shown as *optimized out*, because debug builds are still optimized for size.
 - Stepping past the end of `loop()` leads into the core's `main.cpp`.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.
-- When the debug session starts or you click *Restart*, the board is reset and your sketch starts from the beginning. Without a debug session, a debug build runs normally.
+- When the debug session starts or you click *Restart*, the board is reset and your sketch starts from the beginning. When the session ends, the board is reset again and the sketch runs normally. Without a debug session, a debug build runs normally.
 
 ## Repository layout
 
@@ -125,7 +135,7 @@ While the program is stopped or single-stepping, interrupts do not run: millis()
 - The release packages contain binaries of **avr-gdb** (GNU GDB 17.2, GPL-3.0-or-later):
   - Linux and macOS: built from the [GNU GDB](https://www.gnu.org/software/gdb/) sources with statically linked [GMP](https://gmplib.org/) and [MPFR](https://www.mpfr.org/) (LGPL), see `.github/workflows/gdb.yml`.
   - Windows: from the [AVR-GCC builds by Zak Kemble](https://github.com/ZakKemble/avr-gcc-build) (16.1.0).
-- ATmega328P.svd is generated from Microchip’s ATmega328P device file (ATDF, Apache-2.0).
+- ATmega328P.svd, ATmega32U4.svd and ATmega2560.svd are generated from Microchip’s device files (ATDF, Apache-2.0).
 
 ## Credits
 
