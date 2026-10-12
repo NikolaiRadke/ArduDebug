@@ -1052,10 +1052,8 @@ void debug_init(void)
 	   the bridge has opened the USB port again: stop here and wait for GDB.
 	   Otherwise the sketch just starts; the debugger can connect later. */
 	debug_usb_clear();
-	if (debug_restarted) {
-		debug_restarted = 0;
+	if (debug_restarted)
 		breakpoint();
-	}
 #else
 	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
 		_delay_us(100);
@@ -1121,11 +1119,14 @@ static void uart_init(void) { }
 
 /* ArduDebug: when the debugger connects while the sketch runs, the board
    restarts through the watchdog and the sketch starts over, stopped before
-   setup(), like a Uno after its reset. The request survives the reset at
-   0x0800, the address where the core leaves the key for the bootloader;
-   any other value than the bootloader key just starts the sketch. */
-#define DEBUG_KEY_ADDR		((volatile uint16_t *)0x0800)
+   setup(), like a Uno after its reset. The request survives the reset in
+   RAM at 0x0802, right behind the bootloader key at 0x0800: the Caterina
+   bootloader clears its key at every start, but leaves this place alone. */
+#define DEBUG_KEY_ADDR		((volatile uint16_t *)0x0802)
 #define DEBUG_RESTART_KEY	0xDEB6
+/* 1: restarted for the debugger, waiting for its 0x02; 2: answered it,
+   further 0x02 of the same announcement are answered too; 0: anything else.
+   A 0x02 in state 0 comes from a new debugger session: start over. */
 uint8_t debug_restarted __attribute__((section(".noinit")));
 
 /* Runs right after the reset, before the variables are initialized */
@@ -1143,6 +1144,47 @@ static void debug_restart(void)
 	*DEBUG_KEY_ADDR = DEBUG_RESTART_KEY;
 	wdt_enable(WDTO_15MS);
 	for (;;) ;
+}
+
+/* 1 once GDB has talked to the stub since the last reset */
+static uint8_t debug_session;
+
+/* ArduDebug: the debugger closed the USB port (DTR off). Like a Uno, which
+   the closing resets through DTR, the sketch starts over, now without the
+   debugger. Called from the core's USB interrupt (CDC.cpp) or from the stub
+   while the program is stopped. Only arms the watchdog, so the USB request
+   can still be answered. */
+void debug_usb_closed(void)
+{
+	if (debug_session) {
+		*DEBUG_KEY_ADDR = 0;
+		wdt_enable(WDTO_60MS);
+	}
+}
+
+/* ArduDebug: while the program is stopped, interrupts are off and the core
+   cannot answer the host's requests on the control endpoint. The stub only
+   handles DTR (port opened or closed): closing the port must restart the
+   sketch. Other requests get a STALL; they only come when a stopped board
+   is opened again, which normally does not happen. */
+static void debug_usb_control(void)
+{
+	uint8_t type, req, val;
+
+	UENUM = 0;
+	if (!(UEINTX & _BV(RXSTPI)))
+		return;
+	type = UEDATX;
+	req  = UEDATX;
+	val  = UEDATX;
+	UEINTX = ~_BV(RXSTPI);
+	if (type == 0x21 && req == 0x22) {		/* SET_CONTROL_LINE_STATE */
+		UEINTX = ~_BV(TXINI);			/* status stage */
+		if (!(val & 0x01))
+			debug_usb_closed();		/* port closed */
+	} else {
+		UECONX |= _BV(STALLRQ);			/* not supported now */
+	}
 }
 
 /* ArduDebug: set by debug_usb_rx() when the debugger sent something while
@@ -1180,6 +1222,8 @@ static uint8_t getDebugChar(void)
 				break;
 			UEINTX = 0x6B;	/* empty packet: release, like ReleaseRX() */
 		}
+		debug_usb_control();
+		UENUM = DBG_EP_OUT;
 		WDTRESET();
 	}
 	c = UEDATX;
@@ -1194,8 +1238,11 @@ static uint8_t getDebugChar(void)
 static void putDebugChar(uint8_t c)
 {
 	UENUM = DBG_EP_IN;
-	while (!(UEINTX & _BV(RWAL)))	/* wait for a free bank */
+	while (!(UEINTX & _BV(RWAL))) {	/* wait for a free bank */
+		debug_usb_control();	/* the host may have closed the port */
+		UENUM = DBG_EP_IN;
 		WDTRESET();
+	}
 	UEDATX = c;
 	if (!(UEINTX & _BV(RWAL)))
 		UEINTX = 0x3A;		/* bank full: send it */
@@ -1290,7 +1337,12 @@ void debug_usb_rx(void)
 	UENUM = DBG_EP_OUT;
 	UEIENX &= ~_BV(RXOUTE);		/* again once the packet was read */
 	debug_usb_pending = 1;
-	gdb_enable_swinterrupt();
+	/* With breakpoints, stepping or an armed pause the software interrupt
+	   is active anyway and its handler checks the flag. Enabling it here
+	   would be wrong then: this may run inside the handler's window for the
+	   other interrupts, and it would fire nested in the handler itself. */
+	if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req != 2 )
+		gdb_enable_swinterrupt();
 }
 #endif
 
@@ -1330,6 +1382,10 @@ static void handle_exception(void)
 		
 		switch(b) {
 		case '$':
+#if AVR8_USB_CDC
+			debug_restarted = 0;	/* GDB talks: the announcement is over */
+			debug_session = 1;
+#endif
 			/* Read everything to buffer */
 			gdb_ctx->buff_sz = 0;
 			for (pkt_checksum = 0, b = getDebugChar();
@@ -1408,14 +1464,25 @@ static void handle_exception(void)
 			   after debug_init(), before setup(); we confirm with 0x02 and
 			   wait here for GDB. The flag ends the wait in debug_init(). */
 			debug_bss_pad = 1;
-			if ( gdb_ctx->target_running ) {
 #if AVR8_USB_CDC
-				debug_restart();	/* the debugger connects: start over */
-#endif
+			/* the debugger connects: start over, also if the program
+			   was left stopped by an earlier session */
+			if ( gdb_ctx->target_running || !debug_restarted )
+				debug_restart();
+			debug_restarted = 2;
+#else
+			if ( gdb_ctx->target_running )
 				return;
-			}
+#endif
 			putDebugChar(0x02);
 			break;
+
+#if AVR8_USB_CDC
+		case 0x04:
+			/* ArduDebug: restart button. The bridge sends this instead of
+			   resetting the board through DTR, which has no effect here. */
+			debug_restart();
+#endif
 
 		case 0x01:
 			/* ArduDebug: a character typed in the gdb-server terminal follows.

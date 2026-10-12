@@ -304,6 +304,8 @@ void debug_rx_char(uint8_t c);
 void debug_usb_rx(void);
 /* ArduDebug (ATmega32U4): 1 after a restart requested by the debugger */
 extern uint8_t debug_restarted;
+/* ArduDebug (ATmega32U4): the host closed the USB port */
+void debug_usb_closed(void);
 
 
 /**

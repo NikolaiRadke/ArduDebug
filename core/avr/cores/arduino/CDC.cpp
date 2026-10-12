@@ -18,6 +18,9 @@
 
 #include "USBAPI.h"
 #include <avr/wdt.h>
+#ifdef ARDUDEBUG
+#include "avr8-stub.h"
+#endif
 #include <util/atomic.h>
 
 #if defined(USBCON)
@@ -104,6 +107,12 @@ bool CDC_Setup(USBSetup& setup)
 		if (CDC_SET_CONTROL_LINE_STATE == r)
 		{
 			_usbLineInfo.lineState = setup.wValueL;
+#ifdef ARDUDEBUG
+			// ArduDebug: the debugger closed the port: the sketch starts
+			// over, like a Uno on its DTR reset
+			if ((_usbLineInfo.lineState & 0x01) == 0)
+				debug_usb_closed();
+#endif
 
 			// auto-reset into the bootloader is triggered when the port, already 
 			// open at 1200 bps, is closed.  this is the signal to start the watchdog
