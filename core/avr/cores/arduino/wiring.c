@@ -393,7 +393,7 @@ void init()
 	UCSR0B = 0;
 #endif
 
-#ifdef ARDUDEBUG
+#if defined(ARDUDEBUG) && !defined(USBCON)
 	// ArduDebug: start the debug stub here, after the UART was released
 	// above, so that every sketch calling init() can be debugged, also
 	// sketches with their own main()

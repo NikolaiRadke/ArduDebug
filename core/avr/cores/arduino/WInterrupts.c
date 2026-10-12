@@ -37,7 +37,9 @@
 // ArduDebug: the debugger needs INT0 for single stepping and breakpoints.
 // In debug builds that interrupt is left alone: no ISR here, and
 // attachInterrupt()/detachInterrupt() ignore it. All others work as usual.
-#if defined(EICRA) && defined(EICRB) && !defined(__AVR_ATmega32U4__)
+#if defined(__AVR_ATmega32U4__)
+#define DEBUG_INT0 EXTERNAL_INT_4	// Leonardo: INT6 is interrupt 4 (pin 7)
+#elif defined(EICRA) && defined(EICRB)
 #define DEBUG_INT0 EXTERNAL_INT_2	// Mega: INT0 is interrupt 2 (pin 21)
 #else
 #define DEBUG_INT0 EXTERNAL_INT_0	// Uno/Nano: INT0 is interrupt 0 (pin 2)
@@ -361,7 +363,9 @@ IMPLEMENT_ISR(INT0_vect, EXTERNAL_INT_0)
 IMPLEMENT_ISR(INT1_vect, EXTERNAL_INT_1)
 IMPLEMENT_ISR(INT2_vect, EXTERNAL_INT_2)
 IMPLEMENT_ISR(INT3_vect, EXTERNAL_INT_3)
+#ifndef ARDUDEBUG
 IMPLEMENT_ISR(INT6_vect, EXTERNAL_INT_4)
+#endif
 
 #elif defined(__AVR_AT90USB82__) || defined(__AVR_AT90USB162__) || defined(__AVR_ATmega32U2__) || defined(__AVR_ATmega16U2__) || defined(__AVR_ATmega8U2__)
 

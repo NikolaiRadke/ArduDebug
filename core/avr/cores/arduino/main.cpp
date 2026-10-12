@@ -44,6 +44,12 @@ int main(void)
 
 #if defined(USBCON)
 	USBDevice.attach();
+#ifdef ARDUDEBUG
+	// ArduDebug (Leonardo/Micro): the debugger talks over the USB port.
+	// Wait until the bridge has opened it, then stop for GDB.
+	while (!Serial) ;
+	debug_init();
+#endif
 #endif
 	
 	setup();

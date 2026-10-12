@@ -321,6 +321,15 @@ typedef uint8_t bool_t;
         #else
 		#error SW Interrupt source not valid. Please define AVR8_SWINT_SOURCE value 0 thru 2 or -1 in avr8-stub.h
 	#endif
+#elif defined(__AVR_ATmega32U4__)
+	/* ArduDebug: Leonardo/Micro. INT0 is SCL there, so INT6 on PE6 (pin 7). */
+	#define	AVR8_SWINT_PIN		(PE6)
+	#define AVR8_SWINT_INTMASK	(INT6)
+	#define AVR8_SWINT_SC		(~(_BV(ISC61) | _BV(ISC60)))
+	#define AVR8_SWINT_EICR		EICRB
+	#define AVR8_SWINT_DDR		DDRE
+	#define AVR8_SWINT_PORT		PORTE
+	#define AVR8_SWINT_VECT		INT6_vect
 #else	/* Arduino Uno */
 	#if AVR8_SWINT_SOURCE == 0
 		#define	AVR8_SWINT_PIN		(PD2)
@@ -444,8 +453,14 @@ typedef uint8_t bool_t;
 	#if AVR8_UART_NUMBER != 0
 		#error For ATmega328 only UART0 can be used. Plese change the AVR8_UART_NUMBER to 0.
 	#endif
+#elif defined(__AVR_ATmega32U4__)
+	/* ArduDebug: no UART; the stub talks over the USB serial port (CDC) */
+	#define AVR8_USB_CDC	1
 #else
 	#error Selected MCU is not supported by this stub
+#endif
+#ifndef AVR8_USB_CDC
+	#define AVR8_USB_CDC	0
 #endif
 
 
@@ -974,8 +989,10 @@ void debug_init(void)
 	wfill_stack_canary((uint8_t*)stack, GDB_STACKSIZE);
 #endif
 
+#if !AVR8_USB_CDC
 	/* Initialize serial port */
 	uart_init();
+#endif
 
 #if ((AVR8_BREAKPOINT_MODE == 0) || (AVR8_LOAD_SUPPORT == 1)) && (AVR8_BREAKPOINT_MODE != 2)
 	/* Flash BP or load binary using our bootloader */
@@ -1027,8 +1044,14 @@ void debug_init(void)
 	   sketch just starts 20 ms later. Interrupts are on: init() did sei().
 	   The loop ends as soon as the flag is set: once GDB continues with a
 	   breakpoint set, every instruction is checked and runs very slowly. */
+#if AVR8_USB_CDC
+	/* ArduDebug: main() calls this once the bridge has opened the USB
+	   port. Stop here and wait for GDB. */
+	breakpoint();
+#else
 	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
 		_delay_us(100);
+#endif
 }
 
 #if ( (AVR8_BREAKPOINT_MODE == 0) || (AVR8_LOAD_SUPPORT == 1) || (AVR8_BREAKPOINT_MODE == 2) )
@@ -1079,6 +1102,58 @@ static void gdb_no_bootloder_prep(void) {
 
 /* ---------- UART communication routines  ------------- */
 
+#if AVR8_USB_CDC
+/* ArduDebug: USB transport for the ATmega32U4. The stub polls the CDC
+   endpoints of the Arduino USB core directly, with interrupts off, just as
+   it polls the UART on the Uno. Endpoint numbers: see USBDesc.h. */
+#define DBG_EP_OUT	2	/* CDC_RX */
+#define DBG_EP_IN	3	/* CDC_TX */
+
+static void uart_init(void) { }
+
+/* Send what is waiting in the IN bank */
+static void usb_flush(void)
+{
+	UENUM = DBG_EP_IN;
+	if (UEBCLX)
+		UEINTX = 0x3A;		/* release the bank, like ReleaseTX() */
+}
+
+/* Read a single character from USB */
+static uint8_t getDebugChar(void)
+{
+	uint8_t c;
+
+	usb_flush();			/* the host waits for our answer first */
+	UENUM = DBG_EP_OUT;
+	for (;;) {
+		/* RXOUTI first: only then is the byte count of the bank valid.
+		   Checking the count first could release a packet that arrived
+		   just in between. */
+		if (UEINTX & _BV(RXOUTI)) {
+			if (UEBCLX)
+				break;
+			UEINTX = 0x6B;	/* empty packet: release, like ReleaseRX() */
+		}
+		WDTRESET();
+	}
+	c = UEDATX;
+	if (!UEBCLX)
+		UEINTX = 0x6B;		/* bank read completely: release it */
+	return c;
+}
+
+/* Write a single character to USB */
+static void putDebugChar(uint8_t c)
+{
+	UENUM = DBG_EP_IN;
+	while (!(UEINTX & _BV(RWAL)))	/* wait for a free bank */
+		WDTRESET();
+	UEDATX = c;
+	if (!(UEINTX & _BV(RWAL)))
+		UEINTX = 0x3A;		/* bank full: send it */
+}
+#else
 /* Initialize UART */
 static void uart_init(void)
 {
@@ -1112,6 +1187,7 @@ static void putDebugChar(uint8_t c)
 	/* Put data into buffer, sends the data */
 	UDR = c;
 }
+#endif
 /* ---------------- end UART communication routines ---------------------------------- */
 
 
@@ -1160,7 +1236,11 @@ static inline void gdb_disable_swinterrupt()
 
 /** Macro which is true if there is a pending interrupt from UART Rx
  * */
+#if AVR8_USB_CDC
+#define	UART_RXINT_PENDING()  0
+#else
 #define	UART_RXINT_PENDING()  (UCSRA & (1<<RXC))
+#endif
 
 /* handle_exception
  * Called when the program stops; communicates with the GDB.
@@ -1994,6 +2074,7 @@ static unsigned char *bin2mem(unsigned char *buf, unsigned char *mem, int count)
 /*
  * Interrupt handler for received character from serial port.
  * Having this allows breaking the program during execution from GDB. */
+#if !AVR8_USB_CDC
 ISR(UART_ISR_VECTOR, ISR_BLOCK ISR_NAKED)
 {
 	save_regs1 ();
@@ -2040,6 +2121,7 @@ ISR(UART_ISR_VECTOR, ISR_BLOCK ISR_NAKED)
 		"ret\n");			/* exit with interrupts disabled (reti would enable them) */
 #endif
 }
+#endif	/* !AVR8_USB_CDC */
 
 
 /*
@@ -2062,6 +2144,28 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 #endif
 
 #if (AVR8_BREAKPOINT_MODE == 1) && !defined(__AVR_ATmega2560__)
+#if AVR8_USB_CDC	/* no UART of our own (USB: see getDebugChar()) */
+	#define FP_UART_CHECK	""
+	#define FP_UART_MASK	""
+	#define FP_UART_UNMASK	""
+	#define FP_UCSRA	0
+	#define FP_RXC		0
+	#define FP_UCSRB	0
+	#define FP_NORXCIE	0
+#else
+	#define FP_UART_CHECK	"lds	r24, %[ucsra]\n"	/* UART byte waiting: full path */ \
+				"sbrc	r24, %[rxc]\n" \
+				"rjmp	2f\n"
+	#define FP_UART_MASK	"lds	r24, %[ucsrb]\n" \
+				"mov	r25, r24\n" \
+				"andi	r24, %[norxcie]\n" \
+				"sts	%[ucsrb], r24\n"
+	#define FP_UART_UNMASK	"sts	%[ucsrb], r25\n"
+	#define FP_UCSRA	_SFR_MEM_ADDR(UCSRA)
+	#define FP_RXC		RXC
+	#define FP_UCSRB	_SFR_MEM_ADDR(UCSRB)
+	#define FP_NORXCIE	((uint8_t)~_BV(RXCIE))
+#endif
 	/* ArduDebug: fast path. With a breakpoint set, this interrupt runs after
 	   every single instruction of the program. Saving and restoring all
 	   registers each time costs about 500 cycles. Here only a few registers
@@ -2085,9 +2189,7 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"lds	r24, %[pause]\n"		/* armed pause: full path */
 		"cpi	r24, 2\n"
 		"breq	2f\n"
-		"lds	r24, %[ucsra]\n"		/* UART byte waiting: full path */
-		"sbrc	r24, %[rxc]\n"
-		"rjmp	2f\n"
+		FP_UART_CHECK
 		"in	r30, __SP_L__\n"		/* return address: 8 pushes above */
 		"in	r31, __SP_H__\n"
 		"ldd	r25, Z+9\n"			/* high byte */
@@ -2106,15 +2208,15 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"dec	r28\n"
 		"rjmp	1b\n"
 	"3:	cbi	%[eimsk], %[int0]\n"		/* nothing to do: let the other */
-		"lds	r24, %[ucsrb]\n"		/* interrupts run. INT0 has the */
-		"mov	r25, r24\n"			/* highest priority and would */
-		"andi	r24, %[norxcie]\n"		/* starve them (millis, tone, */
-		"sts	%[ucsrb], r24\n"		/* Servo, Wire...). Mask INT0 and */
-		"sei\n"				/* the stub's own UART interrupt, */
-		"nop\n"				/* enable interrupts for one */
-		"cli\n"				/* instruction: pending ones run */
-		"sts	%[ucsrb], r25\n"		/* here, as if they came before */
-		"sbi	%[eimsk], %[int0]\n"		/* the next program instruction. */
+		FP_UART_MASK				/* interrupts run. INT0 has the */
+		"sei\n"				/* highest priority and would */
+		"nop\n"				/* starve them (millis, tone, */
+		"cli\n"				/* Servo, Wire...). Mask INT0 and */
+		FP_UART_UNMASK				/* the stub's own UART interrupt, */
+		"sbi	%[eimsk], %[int0]\n"		/* enable interrupts for one */
+							/* instruction: pending ones run */
+							/* here, as if they came before */
+							/* the next program instruction. */
 		"pop	r31\n"				/* return */
 		"pop	r30\n"
 		"pop	r28\n"
@@ -2137,15 +2239,15 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		:
 		: [step]  "i" (&ctx.singlestep_enabled),
 		  [pause] "i" (&debug_pause_req),
-		  [ucsra] "n" (_SFR_MEM_ADDR(UCSRA)),
-		  [rxc]   "n" (RXC),
+		  [ucsra] "n" (FP_UCSRA),
+		  [rxc]   "n" (FP_RXC),
 		  [mask]  "n" (RET_ADDR_MASK),
 		  [cnt]   "i" (&ctx.breaks_cnt),
 		  [brk]   "i" (ctx.breaks),
 		  [eimsk] "n" (_SFR_IO_ADDR(EIMSK)),
 		  [int0]  "n" (AVR8_SWINT_INTMASK),
-		  [ucsrb] "n" (_SFR_MEM_ADDR(UCSRB)),
-		  [norxcie] "n" ((uint8_t)~_BV(RXCIE))
+		  [ucsrb] "n" (FP_UCSRB),
+		  [norxcie] "n" (FP_NORXCIE)
 	);
 #endif
 
@@ -2467,6 +2569,9 @@ static void gdb_send_buff(const uint8_t *buff, uint8_t sz)
 	putDebugChar('#');
 	putDebugChar(nib2hex((sum >> 4) & 0xf));
 	putDebugChar(nib2hex(sum & 0xf));
+#if AVR8_USB_CDC
+	usb_flush();
+#endif
 }
 
 __attribute__((optimize("-Os")))

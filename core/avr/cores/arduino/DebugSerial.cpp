@@ -4,7 +4,7 @@
   Copyright (c) 2026 Nikolai Radke. LGPL-2.1-or-later, like the Arduino core.
 */
 
-#ifdef ARDUDEBUG
+#if defined(ARDUDEBUG) && !defined(__AVR_ATmega32U4__)	// Leonardo: not yet
 
 #include "Arduino.h"
 #include "avr8-stub.h"
