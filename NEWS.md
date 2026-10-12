@@ -2,7 +2,7 @@
 
 ## 2026
 
-* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards (incl. Mega) and a reliable stop at the start of `loop()`.  
+* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards.  
 * **11.10.2026** Release **V0.6.0** with all interrupts keep running while breakpoints are set: millis(), tone(), Servo, Wire, etc.
 * **11.10.2026** Release **V0.5.0** with Peripherals view (ports, timers, ADC, etc.).  
 * **11.10.2026** Release **V0.4.0** with much improved performance again und less flash usage (1.4 KB).  

@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards (incl. Mega) and a reliable stop at the start of `loop()`.
+* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -15,11 +15,11 @@ All boards of *Arduino AVR Boards* can be selected under *Tools → Board → Ar
 |---|---|---|
 | Arduino Uno | ATmega328P | tested |
 | Arduino Nano | ATmega328P | tested |
-| Arduino Leonardo | ATmega32U4 | tested (Linux) |
-| Micro, Esplora, Yún, LilyPad USB and other ATmega32U4 boards | ATmega32U4 | should work, not tested |
-| Mini, Pro, Ethernet, Fio, BT, LilyPad and other ATmega328P/168 boards | ATmega328P/168 | should work, not tested |
-| Arduino Mega 2560, Mega ADK | ATmega2560 | should work, not tested |
-| Arduino Mega with ATmega1280 (*Tools → Processor*) | ATmega1280 | should work, not tested |
+| Arduino Leonardo | ATmega32U4 | tested |
+| Micro, Esplora, Yún, LilyPad USB and other ATmega32U4 boards | ATmega32U4 | untested |
+| Mini, Pro, Ethernet, Fio, BT, LilyPad and other ATmega328P/168 boards | ATmega328P/168 | untested |
+| Arduino Mega 2560, Mega ADK | ATmega2560 | untested |
+| Arduino Mega with ATmega1280 (*Tools → Processor*) | ATmega1280 | untested |
 
 ## Testers wanted
 
@@ -101,7 +101,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
-- **Leonardo: upload fails** because the board is not found: press the reset button on the board right when the IDE starts uploading.
+- **Leonardo: upload fails** if the board is not found: press the reset button on the board when the IDE starts uploading.
 - **Pause** stops right before the next pass of `loop()`, in the core's `main.cpp`. Press *Step Into* (F11) to enter `loop()`. If `loop()` doesn't return within a second, the program stops wherever it is, e.g. inside `delay()`; use *Step Out* (Shift+F11) to get back to your sketch.
 - **Reporting a problem:** please attach `ardudebug-bridge.log` from your temp folder (Linux/macOS: `/tmp`, Windows: `%TEMP%`). It records the communication of the last debug session.
 
