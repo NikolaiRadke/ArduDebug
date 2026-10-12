@@ -313,7 +313,16 @@ int32_t Serial_::readBreak() {
 	return ret;
 }
 
+#ifdef ARDUDEBUG
+// ArduDebug: Serial is a DebugSerial (DebugSerial.cpp). The debugger asks
+// here whether the port is open (DTR).
+extern "C" uint8_t debug_cdc_open(void)
+{
+	return _usbLineInfo.lineState & 0x01;
+}
+#else
 Serial_ Serial;
+#endif
 
 #endif /* if defined(CDC_ENABLED) */
 #endif /* if defined(USBCON) */

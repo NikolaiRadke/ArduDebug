@@ -14,6 +14,10 @@
 
 #include "Stream.h"
 
+#if defined(__AVR_ATmega32U4__)
+extern "C" uint8_t debug_cdc_open(void);	// CDC.cpp
+#endif
+
 class DebugSerial : public Stream
 {
   public:
@@ -28,7 +32,12 @@ class DebugSerial : public Stream
     virtual size_t write(uint8_t c) { return write(&c, 1); }
     virtual size_t write(const uint8_t *buffer, size_t size);
     using Print::write;
+#if defined(__AVR_ATmega32U4__)
+    // Leonardo: true once a program (the debugger) has opened the USB port
+    operator bool() { return debug_cdc_open(); }
+#else
     operator bool() { return true; }
+#endif
 };
 
 #endif

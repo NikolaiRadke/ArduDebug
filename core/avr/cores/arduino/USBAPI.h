@@ -151,7 +151,14 @@ public:
 	};
 
 };
+#ifdef ARDUDEBUG
+// ArduDebug: in debug builds the USB port belongs to the debugger; Serial
+// output and input go through it, see DebugSerial.h
+#include "DebugSerial.h"
+extern DebugSerial Serial;
+#else
 extern Serial_ Serial;
+#endif
 
 #define HAVE_CDCSERIAL
 

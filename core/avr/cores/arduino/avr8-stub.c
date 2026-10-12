@@ -1117,6 +1117,8 @@ static void gdb_no_bootloder_prep(void) {
 
 static void uart_init(void) { }
 
+uint8_t debug_cdc_open(void);	/* CDC.cpp: 1 if the host has the port open */
+
 /* ArduDebug: when the debugger connects while the sketch runs, the board
    restarts through the watchdog and the sketch starts over, stopped before
    setup(), like a Uno after its reset. The request survives the reset in
@@ -2614,6 +2616,12 @@ void debug_message(const char* msg)
 uint8_t debug_write(const char* buf, uint8_t len)
 {
 	uint8_t cSREG = SREG;
+#if AVR8_USB_CDC
+	/* ArduDebug: nobody has the USB port open: drop the text. Sending would
+	   wait forever for the host to fetch it. */
+	if (!debug_cdc_open())
+		return len;
+#endif
 	cli();
 	gdb_ctx->buff[0] = 'O';
 	if (len > (AVR8_MAX_BUFF-4) / 2)
