@@ -5,3 +5,4 @@ core/avr/tools/
 tools/
 *.orig
 *.rej
+tests/sim/build/

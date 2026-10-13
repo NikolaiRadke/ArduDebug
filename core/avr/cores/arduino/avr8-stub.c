@@ -2652,13 +2652,27 @@ uint8_t debug_write(const char* buf, uint8_t len)
 	   wait forever for the host to fetch it. */
 	if (!debug_cdc_open())
 		return len;
-#endif
 	cli();
+#else
+	/* ArduDebug: only the stub's own interrupts (UART receive, software
+	   interrupt) are held back while the packet goes out. All others keep
+	   running: millis(), tone(), Servo... */
+	cli();
+	uint8_t ucsrb = UCSRB, eimsk = EIMSK;
+	UCSRB = ucsrb & ~_BV(RXCIE);
+	EIMSK = eimsk & ~_BV(AVR8_SWINT_INTMASK);
+	SREG = cSREG;
+#endif
 	gdb_ctx->buff[0] = 'O';
 	if (len > (AVR8_MAX_BUFF-4) / 2)
 		len = (AVR8_MAX_BUFF-4) / 2;
 	mem2hex(gdb_ctx->buff + 1, (const uint8_t*)buf, len);
 	gdb_send_buff(gdb_ctx->buff, len * 2 + 1);
+#if !AVR8_USB_CDC
+	cli();
+	UCSRB = ucsrb;
+	EIMSK = eimsk;
+#endif
 	SREG = cSREG;
 	return len;
 }

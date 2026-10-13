@@ -101,13 +101,11 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
-- **Leonardo: upload fails** if the board is not found: press the reset button on the board when the IDE starts uploading.
-- **Pause** stops right before the next pass of `loop()`, in the core's `main.cpp`. Press *Step Into* (F11) to enter `loop()`. If `loop()` doesn't return within a second, the program stops wherever it is, e.g. inside `delay()`; use *Step Out* (Shift+F11) to get back to your sketch.
 - **Reporting a problem:** please attach `ardudebug-bridge.log` from your temp folder (Linux/macOS: `/tmp`, Windows: `%TEMP%`). It records the communication of the last debug session.
 
 ## Limitations
 
-- The stub needs about 2.5 KB of flash (Leonardo about 3 KB) and up to about 260 bytes of RAM in debug builds. Normal builds are unaffected. On boards with an ATmega168 (16 KB flash, 1 KB RAM) this leaves less room for the sketch.
+- The stub needs about 3 KB of flash and up to about 270 bytes of RAM in debug builds. Normal builds are unaffected. On boards with an ATmega168 (16 KB flash, 1 KB RAM) this leaves less room for the sketch.
 - In debug builds, some pins belong to the debugger:
   - Uno, Nano and other ATmega328P/168 boards: pins 0 and 1 (serial) and pin 2 (INT0). `attachInterrupt()` works on pin 3, but not on pin 2.
   - Leonardo and other ATmega32U4 boards: pin 7 (INT6). `Serial1` on pins 0 and 1 is free.
