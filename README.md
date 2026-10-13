@@ -27,9 +27,7 @@ All boards of *Arduino AVR Boards* can be selected under *Tools → Board → Ar
 ArduDebug is tested on Linux and Windows with the Uno and the Nano, and on Linux with the Leonardo. Help is welcome for:
 
 - **macOS** (Apple Silicon and Intel): the package includes macOS builds, but they have never been tried.
-- **Leonardo on Windows**.
 - **Mega 2560** and other untested boards from the list above.
-- **8 MHz boards** (Pro 3.3 V, LilyPad, Fio): they use 57600 baud, which has never been tried.
 
 If you can test one of these, please open an [issue](https://github.com/NikolaiRadke/ArduDebug/issues) and tell me what happened, whether it works or not.
 
