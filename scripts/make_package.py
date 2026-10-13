@@ -4,7 +4,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "0.7.0"
+VERSION = "1.8.8-0"
 SRC = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/core/avr"
 OUT = Path.home() / "Dropbox/Erfinderschuppen/ardudebug/dist"
 BASE_URL = f"https://github.com/NikolaiRadke/ArduDebug/releases/download/V{VERSION}"
@@ -49,7 +49,7 @@ def board_names():
 OUT.mkdir(exist_ok=True)
 base = find_deps(json.loads((SRC / "installed.json").read_text()))
 deps = base["toolsDependencies"]
-NAME = f"ArduDebug AVR Boards (basiert auf Arduino AVR {base['version']})"
+NAME = "ArduDebug AVR Boards"
 
 # Core: Kopie ohne tools/ und installed.json, Tool-Pfade auf installierte Tools umbiegen
 stage = OUT / "stage" / f"ardudebug-avr-{VERSION}"

@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable.
 
 🆕 What's new?  
-* **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards.  
+* **13.10.2026** Release **V1.8.8-0**: the first stable release. Mega 2560 keeps interrupts running at breakpoints, Serial output no longer stops millis(), faster F() output, ATmega8 (Arduino NG), simulator test for the stub.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -90,6 +90,8 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 > - Close the Serial Monitor before debugging, and stop the debug session before uploading.
 
 ### Updating
+
+Version numbers follow the core ArduDebug is based on: **1.8.8-X** is built on *Arduino AVR Boards 1.8.8*, X counts the ArduDebug releases.
 
 Updates appear in the Boards Manager. If a new version doesn't show up, the IDE is still using a cached package list: delete `package_ardudebug_index.json` in your Arduino15 folder and restart the IDE.
 
