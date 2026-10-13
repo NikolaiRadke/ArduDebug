@@ -34,9 +34,10 @@
 #include "wiring_private.h"
 
 #ifdef ARDUDEBUG
-// ArduDebug: the debugger needs INT0 for single stepping and breakpoints.
-// In debug builds that interrupt is left alone: no ISR here, and
-// attachInterrupt()/detachInterrupt() ignore it. All others work as usual.
+// ArduDebug: the debugger needs one external interrupt for single stepping
+// and breakpoints: INT0 (pin 2) on the Uno, INT6 on the Leonardo (pin 7) and
+// the Mega (no pin). In debug builds that interrupt is left alone: no ISR
+// here, and attachInterrupt()/detachInterrupt() ignore it.
 #if defined(__AVR_ATmega32U4__)
 #define DEBUG_INT0 EXTERNAL_INT_4	// Leonardo: INT6 is interrupt 4 (pin 7)
 #elif defined(EICRA) && defined(EICRB)
