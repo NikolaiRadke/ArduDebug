@@ -2280,7 +2280,7 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	static uint8_t ind_bks;
 #endif
 
-#if (AVR8_BREAKPOINT_MODE == 1) && !defined(__AVR_ATmega2560__)
+#if (AVR8_BREAKPOINT_MODE == 1)
 #if AVR8_USB_CDC	/* no UART of our own (USB: see getDebugChar()) */
 	#define FP_UART_CHECK	"lds	r24, %[ucsra]\n"	/* debugger data waiting: full path */ \
 				"tst	r24\n" \
@@ -2305,6 +2305,35 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	#define FP_UCSRB	_SFR_MEM_ADDR(UCSRB)
 	#define FP_NORXCIE	((uint8_t)~_BV(RXCIE))
 #endif
+#if defined(__AVR_ATmega2560__)
+	/* 17-bit PC: the return address has 3 bytes (high byte first), the
+	   breakpoints are 32-bit words (low byte first). r29 and r23 extra. */
+	#define FP_PUSH_X	"push	r29\n" \
+				"push	r23\n"
+	#define FP_POP_X	"pop	r23\n" \
+				"pop	r29\n"
+	#define FP_RET_ADDR	"ldd	r23, Z+11\n"		/* high byte */ \
+				"ldd	r25, Z+12\n" \
+				"ldd	r24, Z+13\n"		/* low byte */ \
+				"andi	r23, %[mask]\n"
+	#define FP_BRK_CMP	"ld	r30, X+\n" \
+				"ld	r31, X+\n" \
+				"ld	r29, X+\n" \
+				"adiw	r26, 1\n"			/* skip the 4th byte */ \
+				"cp	r30, r24\n" \
+				"cpc	r31, r25\n" \
+				"cpc	r29, r23\n"
+#else
+	#define FP_PUSH_X	""
+	#define FP_POP_X	""
+	#define FP_RET_ADDR	"ldd	r25, Z+9\n"		/* high byte */ \
+				"ldd	r24, Z+10\n"		/* low byte */ \
+				"andi	r25, %[mask]\n"
+	#define FP_BRK_CMP	"ld	r30, X+\n" \
+				"ld	r31, X+\n" \
+				"cp	r30, r24\n" \
+				"cpc	r31, r25\n"
+#endif
 	/* ArduDebug: fast path. With a breakpoint set, this interrupt runs after
 	   every single instruction of the program. Saving and restoring all
 	   registers each time costs about 500 cycles. Here only a few registers
@@ -2322,6 +2351,7 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"push	r28\n"
 		"push	r30\n"
 		"push	r31\n"
+		FP_PUSH_X
 		"lds	r24, %[step]\n"		/* single step: full path */
 		"tst	r24\n"
 		"brne	2f\n"
@@ -2329,20 +2359,15 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"cpi	r24, 2\n"
 		"breq	2f\n"
 		FP_UART_CHECK
-		"in	r30, __SP_L__\n"		/* return address: 8 pushes above */
+		"in	r30, __SP_L__\n"		/* return address: above the pushes */
 		"in	r31, __SP_H__\n"
-		"ldd	r25, Z+9\n"			/* high byte */
-		"ldd	r24, Z+10\n"			/* low byte */
-		"andi	r25, %[mask]\n"
+		FP_RET_ADDR
 		"lds	r28, %[cnt]\n"
 		"ldi	r26, lo8(%[brk])\n"
 		"ldi	r27, hi8(%[brk])\n"
 	"1:	tst	r28\n"				/* compare with each breakpoint */
 		"breq	3f\n"
-		"ld	r30, X+\n"
-		"ld	r31, X+\n"
-		"cp	r30, r24\n"
-		"cpc	r31, r25\n"
+		FP_BRK_CMP
 		"breq	2f\n"				/* breakpoint hit: full path */
 		"dec	r28\n"
 		"rjmp	1b\n"
@@ -2356,7 +2381,8 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 							/* instruction: pending ones run */
 							/* here, as if they came before */
 							/* the next program instruction. */
-		"pop	r31\n"				/* return */
+		FP_POP_X				/* return */
+		"pop	r31\n"
 		"pop	r30\n"
 		"pop	r28\n"
 		"pop	r27\n"
@@ -2366,7 +2392,8 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"out	__SREG__, r24\n"
 		"pop	r24\n"
 		"reti\n"
-	"2:	pop	r31\n"				/* restore and fall into the full path */
+	"2:"	FP_POP_X				/* restore and fall into the full path */
+		"pop	r31\n"
 		"pop	r30\n"
 		"pop	r28\n"
 		"pop	r27\n"

@@ -113,7 +113,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
   - Leonardo and other ATmega32U4 boards: pin 7 (INT6). `Serial1` on pins 0 and 1 is free.
   - Mega: pins 0 and 1 (serial). The debugger uses INT6, which has no pin on the Mega.
 - Up to 8 breakpoints at a time.
-- While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently. On the Mega 2560, interrupts (millis(), tone(), Servo …) also stop while breakpoints are set.
+- While breakpoints are set, the program runs much slower: the debugger checks the position after every instruction. Timing-critical code may behave differently.
 - Breakpoints inside interrupt routines, e.g. a function attached with `attachInterrupt()`, are never hit: while an interrupt routine runs, the debugger cannot stop the program.
 - No watchpoints (stopping when a variable changes).
 - While the program is stopped or single-stepping, interrupts do not run: millis() does not count on, and Servo pulses or tone() stop. Hardware PWM (analogWrite) keeps running.
