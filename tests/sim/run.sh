@@ -59,6 +59,7 @@ test_case uno        sketch.cpp      atmega328p standard AVR_UNO      16000000
 test_case pro-8mhz   sketch.cpp      atmega328p standard AVR_PRO       8000000
 test_case nano-168   sketch.cpp      atmega168  standard AVR_NANO     16000000
 test_case pro-168-8  sketch.cpp      atmega168  standard AVR_PRO       8000000
+test_case ng-8       sketch.cpp      atmega8    standard AVR_NG       16000000
 test_case mega       sketch.cpp      atmega2560 mega     AVR_MEGA2560 16000000
 test_case mega-high  sketch_high.cpp atmega2560 mega     AVR_MEGA2560 16000000 high
 test_case mega1280   sketch.cpp      atmega1280 mega     AVR_MEGA     16000000

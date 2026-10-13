@@ -45,6 +45,17 @@ size_t Print::print(const __FlashStringHelper *ifsh)
 {
   PGM_P p = reinterpret_cast<PGM_P>(ifsh);
   size_t n = 0;
+#ifdef ARDUDEBUG
+  // ArduDebug: in pieces instead of single characters, so that Serial
+  // sends one debugger packet per piece, not one per character
+  char buf[16];
+  uint8_t len;
+  do {
+    for (len = 0; len < sizeof(buf) && (buf[len] = pgm_read_byte(p)); len++, p++) ;
+    n += write((const uint8_t *)buf, len);
+  } while (len == sizeof(buf));
+  return n;
+#endif
   while (1) {
     unsigned char c = pgm_read_byte(p++);
     if (c == 0) break;

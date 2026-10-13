@@ -54,6 +54,14 @@
 
 #include "avr8-stub.h"
 
+#if defined(__AVR_ATmega8__)
+/* ArduDebug: the ATmega8 has the same external interrupt registers under
+   older names (the bits INT0/INTF0/ISC0x are the same) */
+	#define EIMSK	GICR
+	#define EIFR	GIFR
+	#define EICRA	MCUCR
+#endif
+
 
 
 /* Check for invalid configuration */
@@ -431,7 +439,11 @@ typedef uint8_t bool_t;
 	 out the higher byte, so the mask is actually: 0x3fFF to keep 14 bits.
 	 In the code this is used when reading 2 B from RAM to mask the first byte adr+0; adr+1 is not masked
 	*/
+#if defined(__AVR_ATmega8__)
+	#define RET_ADDR_MASK  0x0f	/* ArduDebug: 12-bit PC */
+#else
 	#define RET_ADDR_MASK  0x3f
+#endif
 #endif
 
 /* UART definitions */
@@ -460,6 +472,9 @@ typedef uint8_t bool_t;
 #elif defined(__AVR_ATmega32U4__)
 	/* ArduDebug: no UART; the stub talks over the USB serial port (CDC) */
 	#define AVR8_USB_CDC	1
+#elif defined(__AVR_ATmega8__)
+	/* ArduDebug: one USART; its registers have no number (UCSRA, UDR...) */
+	#define AVR8_UART_PLAIN	1
 #else
 	#error Selected MCU is not supported by this stub
 #endif
@@ -477,6 +492,7 @@ typedef uint8_t bool_t;
 #define		MAKE_UART_NAME(name1 , num, name2 ) MAKE_UART_NAME_(name1, num, name2 )
 
 /* Create the actual registry and bit names for UART */
+#ifndef AVR8_UART_PLAIN
 #define 	UCSRA	MAKE_UART_NAME(UCSR, AVR8_UART_NUMBER, A)
 #define 	UCSRB	MAKE_UART_NAME(UCSR, AVR8_UART_NUMBER, B)
 #define		UCSRC	MAKE_UART_NAME(UCSR, AVR8_UART_NUMBER, C)
@@ -491,10 +507,13 @@ typedef uint8_t bool_t;
 #define		UDR		MAKE_UART_NAME(UDR, AVR8_UART_NUMBER, )
 #define		RXC		MAKE_UART_NAME(RXC, AVR8_UART_NUMBER, )
 #define		U2X		MAKE_UART_NAME(U2X, AVR8_UART_NUMBER, )
+#endif
 
 /* Define the USART vector name */
 #if defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 	#define	UART_ISR_VECTOR	USART_RX_vect
+#elif defined(__AVR_ATmega8__)
+	#define	UART_ISR_VECTOR	USART_RXC_vect
 #else
 	/* the other MCUs have USART number in the ISR name */
 	#define	MAKE_UART_VECT_(number)		USART ## number ## _RX_vect
@@ -1260,7 +1279,11 @@ static void uart_init(void)
 	/* Init UART */
 	UCSRA = _BV(U2X);		/* double UART speed */
 	UCSRB = (1 << RXEN ) | (1 << TXEN );		/* enable RX and Tx */
+#ifdef URSEL
+	UCSRC = (1 << URSEL) | (1 << UCSZ0) | (1 << UCSZ1);	/* ATmega8: URSEL selects UCSRC */
+#else
 	UCSRC =  (1 << UCSZ0 ) | (1 << UCSZ1 ); /* Use 8- bit character sizes */
+#endif
 	UBRRH = ( GDB_BAUD_PRESCALE >> 8);
 	UBRRL = GDB_BAUD_PRESCALE;
 	UCSRB |= (1 << RXCIE ); /* Enable the USART Recieve Complete interrupt ( USART_RXC ) */
@@ -2305,6 +2328,18 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	#define FP_UCSRB	_SFR_MEM_ADDR(UCSRB)
 	#define FP_NORXCIE	((uint8_t)~_BV(RXCIE))
 #endif
+#if defined(__AVR_ATmega8__)
+	/* GICR is above the I/O registers that cbi/sbi can reach */
+	#define FP_SWINT_OFF	"in	r24, %[eimsk]\n" \
+				"andi	r24, %[noint0]\n" \
+				"out	%[eimsk], r24\n"
+	#define FP_SWINT_ON	"in	r24, %[eimsk]\n" \
+				"ori	r24, %[int0bit]\n" \
+				"out	%[eimsk], r24\n"
+#else
+	#define FP_SWINT_OFF	"cbi	%[eimsk], %[int0]\n"
+	#define FP_SWINT_ON	"sbi	%[eimsk], %[int0]\n"
+#endif
 #if defined(__AVR_ATmega2560__)
 	/* 17-bit PC: the return address has 3 bytes (high byte first), the
 	   breakpoints are 32-bit words (low byte first). r29 and r23 extra. */
@@ -2371,13 +2406,13 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"breq	2f\n"				/* breakpoint hit: full path */
 		"dec	r28\n"
 		"rjmp	1b\n"
-	"3:	cbi	%[eimsk], %[int0]\n"		/* nothing to do: let the other */
+	"3:"	FP_SWINT_OFF				/* nothing to do: let the other */
 		FP_UART_MASK				/* interrupts run. INT0 has the */
 		"sei\n"				/* highest priority and would */
 		"nop\n"				/* starve them (millis, tone, */
 		"cli\n"				/* Servo, Wire...). Mask INT0 and */
 		FP_UART_UNMASK				/* the stub's own UART interrupt, */
-		"sbi	%[eimsk], %[int0]\n"		/* enable interrupts for one */
+		FP_SWINT_ON				/* enable interrupts for one */
 							/* instruction: pending ones run */
 							/* here, as if they came before */
 							/* the next program instruction. */
@@ -2412,6 +2447,8 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		  [brk]   "i" (ctx.breaks),
 		  [eimsk] "n" (_SFR_IO_ADDR(EIMSK)),
 		  [int0]  "n" (AVR8_SWINT_INTMASK),
+		  [int0bit] "n" (_BV(AVR8_SWINT_INTMASK)),
+		  [noint0] "n" ((uint8_t)~_BV(AVR8_SWINT_INTMASK)),
 		  [ucsrb] "n" (FP_UCSRB),
 		  [norxcie] "n" (FP_NORXCIE)
 	);

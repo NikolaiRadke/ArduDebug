@@ -31,7 +31,7 @@ static int failed;
 
 /* The stub's software interrupt: a low-level INTx on an output pin held low */
 static avr_int_vector_t *swv;
-static unsigned swv_num, pin_addr, pin_bit, eimsk_bit;
+static unsigned swv_num, pin_addr, pin_bit, eimsk_addr = 0x3D, eimsk_bit;
 
 static void uart_out(struct avr_irq_t *irq, uint32_t v, void *p)
 {
@@ -60,7 +60,7 @@ DEFINE_FIFO(avr_int_vector_p, avr_int_pending);
 
 static void level_int(void)
 {
-	int want = (avr->data[0x3D] & (1u << eimsk_bit)) &&
+	int want = (avr->data[eimsk_addr] & (1u << eimsk_bit)) &&
 		   !(avr->data[pin_addr] & (1u << pin_bit));
 	if (!want)
 		swv->pending = 0;
@@ -182,6 +182,9 @@ int main(int argc, char **argv)
 
 	if (!strcmp(argv[2], "atmega2560") || !strcmp(argv[2], "atmega1280")) {
 		swv_num = 7; pin_addr = 0x2C; pin_bit = 6; eimsk_bit = 6;	/* INT6, PE6 */
+	} else if (!strcmp(argv[2], "atmega8")) {
+		swv_num = 1; pin_addr = 0x30; pin_bit = 2;			/* INT0, PD2 */
+		eimsk_addr = 0x5B; eimsk_bit = 6;				/* in GICR */
 	} else {
 		swv_num = 1; pin_addr = 0x29; pin_bit = 2; eimsk_bit = 0;	/* INT0, PD2 */
 	}

@@ -9,7 +9,7 @@ Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR board
 
 ## Supported boards
 
-All boards of *Arduino AVR Boards* can be selected under *Tools → Board → ArduDebug AVR Boards* (except Gemma and NG, which have a different chip). Only some of them have been tested so far:
+All boards of *Arduino AVR Boards* can be selected under *Tools → Board → ArduDebug AVR Boards* (except Gemma: its ATtiny85 has no serial connection to the computer). Only some of them have been tested so far:
 
 | Board | Chip | Status |
 |---|---|---|
@@ -18,6 +18,7 @@ All boards of *Arduino AVR Boards* can be selected under *Tools → Board → Ar
 | Arduino Leonardo | ATmega32U4 | tested |
 | Micro, Esplora, Yún, LilyPad USB and other ATmega32U4 boards | ATmega32U4 | untested |
 | Mini, Pro, Ethernet, Fio, BT, LilyPad and other ATmega328P/168 boards | ATmega328P/168 | untested |
+| Arduino NG or older | ATmega8/168 | untested |
 | Arduino Mega 2560, Mega ADK | ATmega2560 | untested |
 | Arduino Mega with ATmega1280 (*Tools → Processor*) | ATmega1280 | untested |
 
