@@ -77,7 +77,7 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 ### First test
 
 1. Select *Tools → Board → ArduDebug AVR Boards → Arduino Uno* (or your board) and the port.
-2. Open the *Blink* example and enable ***ketch → Optimize for Debugging** (important!).
+2. Open the *Blink* example and enable **Sketch → Optimize for Debugging** (important!).
 3. Upload the sketch.
 4. Click left of a line number in `loop()` to set a breakpoint (red dot).
 5. Click the debug button. The program stops at the start of `loop()`; press *Continue* (F5) to run to your breakpoint.
