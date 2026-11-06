@@ -1,116 +1,199 @@
 // Board- und Port-Wahl. Ziel: Der Nutzer muss im Normalfall nichts wählen.
-// Ein originales Board erkennt arduino-cli an der USB-Kennung; bei Klonen
-// (CH340 usw.) wird einmal nach dem Board gefragt und die Wahl pro Sketch gemerkt.
+// Ein originales Board erkennt arduino-cli an der USB-Kennung. Bei Klonen
+// (CH340 usw.) wird einmal nach dem Board gefragt; die Wahl wird pro Port gemerkt.
+// Board und Port stehen getrennt in der Statusleiste und sind dort einzeln wählbar.
 import * as vscode from 'vscode';
 import { Cli, CORE } from './cli';
 
+interface Board {
+  fqbn: string;
+  name: string;
+}
 interface Selection {
-  fqbn?: string;
-  name?: string;
   port?: string;
+  board?: Board;
+}
+interface Port {
+  address: string;
+  label: string;
+  board?: Board; // von arduino-cli erkanntes Board, auf ArduDebug umgesetzt
 }
 
 export class Boards {
-  private item: vscode.StatusBarItem;
+  private boardItem: vscode.StatusBarItem;
+  private portItem: vscode.StatusBarItem;
+  private boards?: Board[];
 
-  constructor(private cli: Cli, private state: vscode.Memento) {
-    this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
-    this.item.command = 'ardudebug.selectBoard';
+  // sketchState: letzte Wahl pro Sketch; globalState: Board pro Port (Klone)
+  constructor(private cli: Cli, private sketchState: vscode.Memento, private globalState: vscode.Memento) {
+    this.boardItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 51);
+    this.boardItem.command = 'ardudebug.selectBoard';
+    this.boardItem.tooltip = vscode.l10n.t('ArduDebug: select board');
+    this.portItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
+    this.portItem.command = 'ardudebug.selectPort';
+    this.portItem.tooltip = vscode.l10n.t('ArduDebug: select port');
   }
 
   dispose() {
-    this.item.dispose();
+    this.boardItem.dispose();
+    this.portItem.dispose();
   }
 
   private get(sketch: string): Selection {
-    return this.state.get<Selection>('board:' + sketch) ?? {};
+    return this.sketchState.get<Selection>('selection:' + sketch) ?? {};
   }
 
   private async set(sketch: string, sel: Selection) {
-    await this.state.update('board:' + sketch, sel);
+    await this.sketchState.update('selection:' + sketch, sel);
+    if (sel.port && sel.board) await this.remember(sel.port, sel.board);
     this.show(sketch);
   }
 
+  private remembered(port: string): Board | undefined {
+    return this.globalState.get<Record<string, Board>>('portBoards', {})[port];
+  }
+
+  private async remember(port: string, board: Board) {
+    const map = this.globalState.get<Record<string, Board>>('portBoards', {});
+    await this.globalState.update('portBoards', { ...map, [port]: board });
+  }
+
+  // Zeigt die gespeicherte Wahl sofort an und prüft im Hintergrund, ob der
+  // Port noch angeschlossen ist.
   show(sketch?: string) {
     if (!sketch) {
-      this.item.hide();
+      this.boardItem.hide();
+      this.portItem.hide();
       return;
     }
-    const s = this.get(sketch);
-    this.item.text = `$(circuit-board) ${s.name ?? vscode.l10n.t('Board?')}  $(plug) ${s.port ?? 'Port?'}`;
-    this.item.tooltip = vscode.l10n.t('ArduDebug: select board and port');
-    this.item.show();
+    const sel = this.get(sketch);
+    this.boardItem.text = `$(circuit-board) ${sel.board?.name ?? vscode.l10n.t('Board?')}`;
+    this.portItem.text = `$(plug) ${sel.port ?? vscode.l10n.t('Port?')}`;
+    this.boardItem.show();
+    this.portItem.show();
+    if (sel.port) {
+      this.serialPorts()
+        .then((ports) => {
+          if (!ports.some((p) => p.address === sel.port)) {
+            this.portItem.text = `$(debug-disconnect) ${sel.port} (${vscode.l10n.t('not connected')})`;
+          }
+        })
+        .catch(() => {});
+    }
   }
 
   // Liefert Board und Port für den Sketch; erkennt sie automatisch oder fragt nach.
-  async resolve(sketch: string): Promise<Required<Selection>> {
+  async resolve(sketch: string): Promise<{ port: string; fqbn: string }> {
     const sel = this.get(sketch);
     const ports = await this.serialPorts();
 
-    // Gemerkter Port weg (anderer USB-Anschluss)? Dann neu suchen.
-    if (!sel.port || !ports.some((p) => p.address === sel.port)) {
-      sel.port = undefined;
-      const known = ports.find((p) => p.fqbn);
-      if (known) sel.port = known.address;
-      else if (ports.length === 1) sel.port = ports[0].address;
-      else if (ports.length > 1) sel.port = await this.pickPort(ports);
+    // Port: gemerkter, sonst eindeutig erkennbarer, sonst fragen
+    let port = ports.find((p) => p.address === sel.port);
+    if (!port) {
+      const known = ports.filter((p) => p.board);
+      if (known.length === 1) port = known[0];
+      else if (ports.length === 1) port = ports[0];
+      else if (ports.length > 1) port = await this.pickPort(ports);
     }
-    if (!sel.port) throw new Error(vscode.l10n.t('No Arduino found. Is the board connected via USB?'));
+    if (!port) throw new Error(vscode.l10n.t('No Arduino found. Is the board connected via USB?'));
 
-    if (!sel.fqbn) {
-      // arduino:avr:uno -> ardudebug:avr:uno, sofern ArduDebug das Board kennt
-      const detected = ports.find((p) => p.address === sel.port)?.fqbn;
-      const boards = await this.allBoards();
-      const match = detected && boards.find((b) => b.fqbn === detected.replace(/^arduino:avr:/, CORE + ':'));
-      const board = match ?? (await this.pickBoard(boards));
-      if (!board) throw new Error(vscode.l10n.t('No board selected.'));
-      sel.fqbn = board.fqbn;
-      sel.name = board.name;
-    }
-    await this.set(sketch, sel);
-    return sel as Required<Selection>;
+    const board = await this.boardFor(port, sel);
+    if (!board) throw new Error(vscode.l10n.t('No board selected.'));
+    await this.set(sketch, { port: port.address, board });
+    return { port: port.address, fqbn: board.fqbn };
+  }
+
+  // Board für einen Port: erkannt > zuletzt für diesen Sketch und Port > für den Port gemerkt > fragen
+  private async boardFor(port: Port, sel: Selection): Promise<Board | undefined> {
+    if (port.board) return port.board;
+    if (sel.board && sel.port === port.address) return sel.board;
+    return this.remembered(port.address) ?? (await this.pickBoard(port.address));
   }
 
   async selectBoard(sketch: string) {
-    const board = await this.pickBoard(await this.allBoards());
-    if (board) await this.set(sketch, { ...this.get(sketch), fqbn: board.fqbn, name: board.name });
+    const sel = this.get(sketch);
+    const board = await this.pickBoard(sel.port);
+    if (board) await this.set(sketch, { ...sel, board });
   }
 
   async selectPort(sketch: string) {
-    const port = await this.pickPort(await this.serialPorts());
-    if (port) await this.set(sketch, { ...this.get(sketch), port });
+    const ports = await this.serialPorts();
+    if (!ports.length) throw new Error(vscode.l10n.t('No Arduino found. Is the board connected via USB?'));
+    const port = await this.pickPort(ports);
+    if (!port) return;
+    const board = await this.boardFor(port, this.get(sketch));
+    if (board) await this.set(sketch, { port: port.address, board });
   }
 
-  private async serialPorts(): Promise<{ address: string; label: string; fqbn?: string }[]> {
+  private async serialPorts(): Promise<Port[]> {
     const res = await this.cli.json<any>(['board', 'list']);
-    const ports: any[] = Array.isArray(res) ? res : res.detected_ports ?? [];
-    return ports
+    const list: any[] = Array.isArray(res) ? res : res.detected_ports ?? [];
+    const boards = await this.allBoards();
+    return list
       .filter((p) => p.port?.protocol === 'serial')
-      .map((p) => ({
-        address: p.port.address,
-        label: p.port.label ?? p.port.address,
-        fqbn: p.matching_boards?.[0]?.fqbn,
-      }));
+      .map((p) => {
+        // arduino:avr:uno -> ardudebug:avr:uno, sofern ArduDebug das Board kennt
+        const fqbn = p.matching_boards?.[0]?.fqbn?.replace(/^arduino:avr:/, CORE + ':');
+        return {
+          address: p.port.address,
+          label: p.port.label ?? p.port.address,
+          board: boards.find((b) => b.fqbn === fqbn),
+        };
+      });
   }
 
-  private async allBoards(): Promise<{ fqbn: string; name: string }[]> {
-    const res = await this.cli.json<any>(['board', 'listall', CORE]);
-    return (res.boards ?? []).filter((b: any) => !b.is_hidden);
+  private async allBoards(): Promise<Board[]> {
+    if (!this.boards) {
+      const res = await this.cli.json<any>(['board', 'listall', CORE]);
+      this.boards = (res.boards ?? [])
+        .filter((b: any) => !b.is_hidden)
+        .map((b: any) => ({ fqbn: b.fqbn, name: b.name }));
+    }
+    return this.boards!;
   }
 
-  private async pickBoard(boards: { fqbn: string; name: string }[]) {
+  private async pickBoard(port?: string): Promise<Board | undefined> {
     const pick = await vscode.window.showQuickPick(
-      boards.map((b) => ({ label: b.name, fqbn: b.fqbn })),
-      { placeHolder: vscode.l10n.t('Which board is connected?') }
+      (await this.allBoards()).map((b) => ({ label: b.name, board: b })),
+      {
+        placeHolder: port
+          ? vscode.l10n.t('Which board is connected to {0}?', port)
+          : vscode.l10n.t('Which board is connected?'),
+      }
     );
-    return pick && { fqbn: pick.fqbn, name: pick.label };
+    return pick?.board && (await this.pickOptions(pick.board));
   }
 
-  private async pickPort(ports: { address: string; label: string }[]) {
+  // Board-Optionen wie "Prozessor" beim Nano (alter/neuer Bootloader) abfragen.
+  // LTO setzt die Extension selbst, danach wird nicht gefragt.
+  private async pickOptions(board: Board): Promise<Board | undefined> {
+    const details = await this.cli.json<any>(['board', 'details', '-b', board.fqbn]);
+    const opts: string[] = [];
+    let name = board.name;
+    for (const o of details.config_options ?? []) {
+      if (o.option === 'lto' || (o.values ?? []).length < 2) continue;
+      const items: (vscode.QuickPickItem & { value: string })[] = o.values.map((v: any) => ({
+        label: v.value_label,
+        value: v.value,
+        picked: v.selected,
+      }));
+      const pick = await vscode.window.showQuickPick(items, { placeHolder: `${board.name}: ${o.option_label}` });
+      if (!pick) return undefined;
+      opts.push(`${o.option}=${pick.value}`);
+      name += ` (${pick.label})`;
+    }
+    return { fqbn: opts.length ? `${board.fqbn}:${opts.join(',')}` : board.fqbn, name };
+  }
+
+  private async pickPort(ports: Port[]): Promise<Port | undefined> {
     const pick = await vscode.window.showQuickPick(
-      ports.map((p) => ({ label: p.address, description: p.label })),
+      ports.map((p) => ({
+        label: p.address,
+        description: p.board?.name ?? this.remembered(p.address)?.name ?? p.label,
+        port: p,
+      })),
       { placeHolder: vscode.l10n.t('Which port is the Arduino connected to?') }
     );
-    return pick?.label;
+    return pick?.port;
   }
 }

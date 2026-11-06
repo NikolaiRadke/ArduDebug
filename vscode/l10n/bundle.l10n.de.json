@@ -1,6 +1,7 @@
 {
   "ArduDebug: select baud rate": "ArduDebug: Baudrate wählen",
-  "ArduDebug: select board and port": "ArduDebug: Board und Port wählen",
+  "ArduDebug: select board": "ArduDebug: Board wählen",
+  "ArduDebug: select port": "ArduDebug: Port wählen",
   "Baud rate (must match Serial.begin() in the sketch)": "Baudrate (muss zu Serial.begin() im Sketch passen)",
   "Board?": "Board?",
   "Cannot start arduino-cli: {0}": "arduino-cli lässt sich nicht starten: {0}",
@@ -10,10 +11,13 @@
   "No Arduino found. Is the board connected via USB?": "Kein Arduino gefunden. Ist das Board per USB angeschlossen?",
   "No board selected.": "Kein Board gewählt.",
   "Please open an .ino file first.": "Bitte zuerst eine .ino-Datei öffnen.",
+  "Port?": "Port?",
   "Serial Monitor": "Serieller Monitor",
   "Setting up ArduDebug …": "ArduDebug wird eingerichtet …",
   "Uploading …": "Hochladen …",
+  "Which board is connected to {0}?": "Welches Board hängt an {0}?",
   "Which board is connected?": "Welches Board ist angeschlossen?",
   "Which port is the Arduino connected to?": "An welchem Port hängt der Arduino?",
-  "arduino-cli: error {0}": "arduino-cli: Fehler {0}"
+  "arduino-cli: error {0}": "arduino-cli: Fehler {0}",
+  "not connected": "nicht verbunden"
 }

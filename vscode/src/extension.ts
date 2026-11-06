@@ -20,7 +20,7 @@ let buildRoot: string;
 export function activate(ctx: vscode.ExtensionContext) {
   out = vscode.window.createOutputChannel('ArduDebug');
   cli = new Cli(ctx.extensionPath, out);
-  boards = new Boards(cli, ctx.workspaceState);
+  boards = new Boards(cli, ctx.workspaceState, ctx.globalState);
   monitor = new Monitor(cli, ctx.globalState);
   buildRoot = path.join(ctx.globalStorageUri.fsPath, 'build');
 
