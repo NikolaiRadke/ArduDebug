@@ -6,3 +6,7 @@ tools/
 *.orig
 *.rej
 tests/sim/build/
+vscode/node_modules/
+vscode/out/
+vscode/bin/
+vscode/*.vsix

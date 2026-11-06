@@ -1,0 +1,136 @@
+{
+  "name": "ardudebug",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.1.0",
+  "publisher": "NikolaiRadke",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NikolaiRadke/ArduDebug"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.ino",
+    "onLanguage:cpp",
+    "onDebugResolve:ardudebug"
+  ],
+  "contributes": {
+    "configurationDefaults": {
+      "files.associations": {
+        "*.ino": "cpp"
+      }
+    },
+    "commands": [
+      {
+        "command": "ardudebug.debug",
+        "title": "%command.debug%",
+        "category": "ArduDebug",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "ardudebug.compile",
+        "title": "%command.compile%",
+        "category": "ArduDebug",
+        "icon": "$(check)"
+      },
+      {
+        "command": "ardudebug.upload",
+        "title": "%command.upload%",
+        "category": "ArduDebug",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "ardudebug.monitor",
+        "title": "%command.monitor%",
+        "category": "ArduDebug",
+        "icon": "$(output)"
+      },
+      {
+        "command": "ardudebug.selectBoard",
+        "title": "%command.selectBoard%",
+        "category": "ArduDebug"
+      },
+      {
+        "command": "ardudebug.selectPort",
+        "title": "%command.selectPort%",
+        "category": "ArduDebug"
+      },
+      {
+        "command": "ardudebug.selectBaudrate",
+        "title": "%command.selectBaudrate%",
+        "category": "ArduDebug"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "ardudebug.compile",
+          "when": "resourceExtname == .ino",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ardudebug.upload",
+          "when": "resourceExtname == .ino",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ardudebug.monitor",
+          "when": "resourceExtname == .ino",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ardudebug.debug",
+          "when": "resourceExtname == .ino",
+          "group": "navigation@4"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ardudebug.debug",
+        "key": "f5",
+        "when": "resourceExtname == .ino && !inDebugMode"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "ardudebug",
+        "label": "ArduDebug",
+        "languages": [
+          "cpp"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "cdt-gdb-adapter": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^4.1.0",
+    "typescript": "^5.4.0"
+  },
+  "icon": "images/icon.png",
+  "l10n": "./l10n",
+  "keywords": [
+    "arduino",
+    "debug",
+    "avr",
+    "uno",
+    "breakpoint"
+  ]
+}

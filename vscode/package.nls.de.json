@@ -1,0 +1,11 @@
+{
+  "displayName": "ArduDebug",
+  "description": "Breakpoint-Debugging für Arduino Uno, Nano, Leonardo und Mega. Ohne zusätzliche Hardware.",
+  "command.debug": "Debuggen",
+  "command.compile": "Überprüfen",
+  "command.upload": "Hochladen",
+  "command.monitor": "Serieller Monitor",
+  "command.selectBoard": "Board wählen",
+  "command.selectPort": "Port wählen",
+  "command.selectBaudrate": "Baudrate wählen"
+}
