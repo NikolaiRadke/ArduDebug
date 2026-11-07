@@ -2,6 +2,7 @@
 
 ## 2026
 
+* **07.11.2026** Release **V1.8.8-1**: Debugger stays in sketch and skips main.cpp.
 * **13.10.2026** Release **V1.8.8-0**: the first stable release.  
 * **12.10.2026** Release **V0.7.0** with Leonardo and all ATmega32U4 boards, the complete board list of Arduino AVR Boards.  
 * **11.10.2026** Release **V0.6.0** with all interrupts keep running while breakpoints are set: millis(), tone(), Servo, Wire, etc.

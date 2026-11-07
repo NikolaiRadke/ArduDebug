@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable. Based on Arduino AVR Boards V1.8.8.  
 
 🆕 What's new?  
-* **13.10.2026** Release **V1.8.8-0**: the first stable release.  
+* **07.11.2026** Release **V1.8.8-1**: Debugger stays in sketch and skips main.cpp.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
