@@ -357,8 +357,8 @@
           ],
           "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-2/ardudebug-avr-1.8.8-2.tar.bz2",
           "archiveFileName": "ardudebug-avr-1.8.8-2.tar.bz2",
-          "checksum": "SHA-256:07df85ef48c068265291dd36fd87a168bc2948cd6019426081dad3d34807aff6",
-          "size": "350576"
+          "checksum": "SHA-256:1a4bbd1abcff63dc8a3e9fd1b30d40ed5fb51282c3b26ab1919d838dcf5a5fcf",
+          "size": "350582"
         }
       ],
       "tools": [
