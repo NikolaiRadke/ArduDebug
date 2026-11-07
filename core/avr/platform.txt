@@ -20,12 +20,12 @@ compiler.warning_flags.all=-Wall -Wextra
 # Default "compiler.path" is correct, change only if you want to override the initial value
 compiler.path={runtime.tools.avr-gcc.path}/bin/
 compiler.c.cmd=avr-gcc
-compiler.c.flags=-c -g -Os {compiler.warning_flags} -std=gnu11 -ffunction-sections -fdata-sections -MMD {build.lto_c}
+compiler.c.flags=-c -g -Os {compiler.warning_flags} -std=gnu11 -ffunction-sections -fdata-sections -MMD
 compiler.c.elf.flags={compiler.warning_flags} -Os -g {build.lto_elf} -Wl,--gc-sections
 compiler.c.elf.cmd=avr-gcc
 compiler.S.flags=-c -g -x assembler-with-cpp {build.lto} -MMD
 compiler.cpp.cmd=avr-g++
-compiler.cpp.flags=-c -g -Os {compiler.warning_flags} -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD {build.lto}
+compiler.cpp.flags=-c -g -Os {compiler.warning_flags} -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD
 compiler.ar.cmd=avr-gcc-ar
 compiler.ar.flags=rcs
 compiler.objcopy.cmd=avr-objcopy
@@ -66,7 +66,10 @@ archive_file_path={build.path}/{archive_file}
 recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} {compiler.ar.extra_flags} "{archive_file_path}" "{object_file}"
 
 ## Combine gc-sections, archives, and objects
-recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} -mmcu={build.mcu} {compiler.c.elf.extra_flags} {compiler.ldflags} -o "{build.path}/{build.project_name}.elf" {object_files} {compiler.libraries.ldflags} "{build.path}/{archive_file}" "-L{build.path}" -lm
+# ArduDebug: a marker object between the user's code (sketch, libraries) and the
+# core, so the stub knows where the sketch ends (pause stops in the sketch).
+recipe.hooks.linking.prelink.1.pattern="{compiler.path}{compiler.c.cmd}" -c -mmcu={build.mcu} -x assembler-with-cpp "{runtime.platform.path}/ardudebug/core_start.S" -o "{build.path}/ardudebug_core_start.o"
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} -mmcu={build.mcu} {compiler.c.elf.extra_flags} {compiler.ldflags} -o "{build.path}/{build.project_name}.elf" {object_files} {compiler.libraries.ldflags} "{build.path}/ardudebug_core_start.o" "{build.path}/{archive_file}" "-L{build.path}" -lm
 
 ## Create output files (.eep and .hex)
 recipe.objcopy.eep.pattern="{compiler.path}{compiler.objcopy.cmd}" {compiler.objcopy.eep.flags} {compiler.objcopy.eep.extra_flags} "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.eep"
@@ -142,12 +145,12 @@ build.usb_manufacturer="Unknown"
 build.usb_flags=-DUSB_VID={build.vid} -DUSB_PID={build.pid} '-DUSB_MANUFACTURER={build.usb_manufacturer}' '-DUSB_PRODUCT={build.usb_product}'
 debug.executable={build.path}/{build.project_name}.elf
 debug.toolchain=gcc
-debug.toolchain.path={runtime.platform.path}/tools/gdb/bin/
+debug.toolchain.path={runtime.tools.ardudebug-gdb.path}/bin/
 debug.toolchain.prefix=avr-
 debug.server=openocd
-debug.server.openocd.path={runtime.platform.path}/tools/bridge/ardudebug-bridge
-debug.server.openocd.path.windows={runtime.platform.path}/tools/bridge/ardudebug-bridge.exe
-debug.server.openocd.script={runtime.platform.path}/tools/bridge/dummy.cfg
+debug.server.openocd.path={runtime.tools.ardudebug-bridge.path}/ardudebug-bridge
+debug.server.openocd.path.windows={runtime.tools.ardudebug-bridge.path}/ardudebug-bridge.exe
+debug.server.openocd.script={runtime.tools.ardudebug-bridge.path}/dummy.cfg
 debug.cortex-debug.custom.serverArgs.0=-c
 debug.cortex-debug.custom.serverArgs.1=ardudebug_port {debug.port} ardudebug_mcu {build.mcu} ardudebug_fcpu {build.f_cpu}
 debug.cortex-debug.custom.overrideLaunchCommands.0=echo ArduDebug connected\n
@@ -156,8 +159,12 @@ debug.cortex-debug.custom.runToEntryPoint=loop
 debug.cortex-debug.custom.overrideLaunchCommands.1=skip -gfi */cores/arduino/*
 # Cortex-Debug needs objdump and nm (next to it) for its symbol table
 debug.cortex-debug.custom.objdumpPath={runtime.tools.avr-gcc.path}/bin/avr-objdump
-compiler.optimization_flags=-Os
-compiler.optimization_flags.release=-Os
+# LTO (menu LTO) only in normal builds. "Optimize for Debugging" always builds
+# without LTO: with LTO, variables are missing and functions like loop() get
+# inlined, so the debugger can't stop where it should. Linking keeps -flto,
+# which does no harm without LTO objects.
+compiler.optimization_flags=-Os {build.lto}
+compiler.optimization_flags.release=-Os {build.lto}
 compiler.optimization_flags.debug=-Os -DARDUDEBUG -fno-optimize-sibling-calls
 compiler.c.extra_flags={compiler.optimization_flags}
 compiler.cpp.extra_flags={compiler.optimization_flags}

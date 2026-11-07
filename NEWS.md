@@ -2,6 +2,7 @@
 
 ## 2026
 
+* **07.11.2026** Release **V1.8.8-3**: Pause stops at the sketch line the program is working on.  
 * **07.11.2026** Release **V1.8.8-2**: Pause stops at the start of loop() instead of main()
 * **07.11.2026** Release **V1.8.8-1**: Debugger stays in sketch and skips main.cpp.
 * **13.10.2026** Release **V1.8.8-0**: the first stable release.  

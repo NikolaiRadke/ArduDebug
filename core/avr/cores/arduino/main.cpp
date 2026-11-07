@@ -61,8 +61,7 @@ int main(void)
 	// Whole loop on one line: after the end of loop(), a step lands in the
 	// middle of this line, GDB does not stop here, and the user gets straight
 	// back to the start of loop() without ever seeing main.cpp.
-	// A pause request stops at the start of loop() (see avr8-stub.c).
-	for (;;) { if (debug_pause_req == 1) debug_pause_point(); loop(); if (serialEventRun) serialEventRun(); }
+	for (;;) { loop(); if (serialEventRun) serialEventRun(); }
 #else
 	for (;;) {
 		loop();

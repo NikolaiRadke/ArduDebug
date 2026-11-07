@@ -98,13 +98,11 @@ void breakpoint(void);
 
 /**
  * ArduDebug: pause handling. The first pause request from the debugger sets
- * debug_pause_req to 1; main() then calls debug_pause_point() before the next
- * loop() pass, so the program stops in the sketch rather than inside delay().
- * debug_pause_point() arms the stop (2, then 3 once back in main()), which then
- * happens in the INT0 handler at the first instruction of loop().
+ * debug_pause_req to 2; the program then stops at its next instruction in the
+ * sketch, not inside delay() or another core function. delay() checks it and
+ * returns at once, so a pause doesn't wait for the delay to end.
  */
 extern volatile uint8_t debug_pause_req;
-void debug_pause_point(void);
 
 /**
  * ArduDebug: called for each character typed in the gdb-server terminal

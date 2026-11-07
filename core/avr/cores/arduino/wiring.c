@@ -111,6 +111,11 @@ void delay(unsigned long ms)
 	uint32_t start = micros();
 
 	while (ms > 0) {
+#ifdef ARDUDEBUG
+		// A pause request ends the wait, so the program stops right after
+		// the call of delay() in the sketch (see avr8-stub.c).
+		if (debug_pause_req) return;
+#endif
 		yield();
 		while ( ms > 0 && (micros() - start) >= 1000) {
 			ms--;

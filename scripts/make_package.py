@@ -14,7 +14,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "1.8.8-2"
+VERSION = "1.8.8-3"
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "core" / "avr"
@@ -72,14 +72,11 @@ def board_names():
 
 
 def build_core():
-    """Core archive: copy without tools/ and installed.json, tool paths point to the installed tools."""
+    """Core archive: copy without tools/ and installed.json. platform.txt already
+    points to the installed tools ({runtime.tools.ardudebug-bridge.path} etc.)."""
     stage = OUT / "stage" / f"ardudebug-avr-{VERSION}"
     shutil.rmtree(OUT / "stage", ignore_errors=True)
     shutil.copytree(SRC, stage, ignore=shutil.ignore_patterns("tools", "installed.json"))
-    pt = stage / "platform.txt"
-    pt.write_text(pt.read_text()
-        .replace("{runtime.platform.path}/tools/bridge", "{runtime.tools.ardudebug-bridge.path}")
-        .replace("{runtime.platform.path}/tools/gdb", "{runtime.tools.ardudebug-gdb.path}"))
     core = pack(f"ardudebug-avr-{VERSION}.tar.bz2", VERSION, [(stage, stage.name)])
     shutil.rmtree(OUT / "stage", ignore_errors=True)
 

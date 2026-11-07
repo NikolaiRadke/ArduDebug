@@ -11,7 +11,7 @@ export const INDEX_URL =
 export const CORE = 'ardudebug:avr';
 // Board package version this extension needs. Older installed versions are
 // upgraded automatically, newer ones are kept.
-export const CORE_VERSION = '1.8.8-2';
+export const CORE_VERSION = '1.8.8-3';
 
 export class Cli {
   constructor(private extPath: string, private out: vscode.OutputChannel) {}
