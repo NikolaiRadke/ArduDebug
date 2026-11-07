@@ -1,11 +1,12 @@
 {
   "displayName": "ArduDebug",
-  "description": "Breakpoint debugging for Arduino Uno, Nano, Leonardo and Mega. No extra hardware required.",
+  "description": "Breakpoint debugging for Arduino Uno, Nano, Leonardo and Mega – no extra hardware required",
   "command.debug": "Debug",
   "command.compile": "Verify",
   "command.upload": "Upload",
   "command.monitor": "Serial Monitor",
   "command.selectBoard": "Select Board",
   "command.selectPort": "Select Port",
-  "command.selectBaudrate": "Select Baud Rate"
+  "command.selectBaudrate": "Select Baud Rate",
+  "submenu.label": "ArduDebug"
 }

@@ -1,7 +1,6 @@
-// ArduDebug für VS Code: Kompilieren, Hochladen, serieller Monitor und Debuggen
-// eines Arduino-Sketches ohne Konfigurationsdateien. Maßgeblich ist immer die
-// gerade aktive .ino-Datei, nicht der geöffnete Ordner (Einsteiger öffnen oft
-// das ganze Sketchbook).
+// ArduDebug for VS Code: verify, upload, serial monitor and debugging of an
+// Arduino sketch without configuration files. What counts is always the active
+// .ino file, not the opened folder (beginners often open the whole sketchbook).
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -20,7 +19,7 @@ let buildRoot: string;
 export function activate(ctx: vscode.ExtensionContext) {
   out = vscode.window.createOutputChannel('ArduDebug');
   cli = new Cli(ctx.extensionPath, out);
-  boards = new Boards(cli, ctx.workspaceState, ctx.globalState);
+  boards = new Boards(cli, ctx.workspaceState);
   monitor = new Monitor(cli, ctx.globalState);
   buildRoot = path.join(ctx.globalStorageUri.fsPath, 'build');
 
@@ -37,7 +36,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     command('ardudebug.selectPort', (s) => boards.selectPort(s)),
     vscode.commands.registerCommand('ardudebug.selectBaudrate', () => monitor.selectBaudrate()),
     vscode.window.onDidChangeActiveTextEditor(updateStatusBar),
-    // Nach dem Debuggen gehört der Port wieder dem Monitor
+    // After debugging the port belongs to the monitor again
     vscode.debug.onDidTerminateDebugSession((s) => {
       if (s.type === DEBUG_TYPE) setTimeout(() => monitor.resume(), 1000);
     })
@@ -53,13 +52,13 @@ function updateStatusBar() {
   monitor.show(!!sketch);
 }
 
-// Ordner des Sketches der aktiven .ino-Datei
+// Sketch folder of the active .ino file
 function currentSketch(): string | undefined {
   const doc = vscode.window.activeTextEditor?.document;
   return doc?.fileName.endsWith('.ino') ? path.dirname(doc.fileName) : undefined;
 }
 
-// Befehl mit gemeinsamer Fehlerbehandlung; ohne aktiven Sketch passiert nichts.
+// Command with common error handling; does nothing without an active sketch.
 function command(id: string, fn: (sketch: string) => Promise<unknown>) {
   return vscode.commands.registerCommand(id, async () => {
     const sketch = currentSketch();
@@ -78,7 +77,7 @@ function command(id: string, fn: (sketch: string) => Promise<unknown>) {
   });
 }
 
-// Eigener Build-Ordner pro Sketch, damit der Sketch-Ordner sauber bleibt.
+// Separate build folder per sketch, so the sketch folder stays clean.
 function buildPath(sketch: string): string {
   const id = crypto.createHash('md5').update(sketch).digest('hex').slice(0, 8);
   return path.join(buildRoot, `${path.basename(sketch)}-${id}`);
@@ -117,7 +116,7 @@ async function debug(sketch: string) {
       throw new Error(vscode.l10n.t('Could not start the debugger.'));
     }
   } catch (e) {
-    monitor.resume(); // Debuggen kam nicht zustande, Monitor gleich wieder öffnen
+    monitor.resume(); // debugging did not start, reopen the monitor right away
     throw e;
   }
 }

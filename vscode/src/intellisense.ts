@@ -1,7 +1,7 @@
-// Code-Unterstützung im Editor: schreibt eine c_cpp_properties.json, damit die
-// C/C++-Extension Arduino.h & Co. findet. Die Werte kommen aus den Build-Properties
-// des gewählten Boards. Ohne C/C++-Extension ist das wirkungslos, aber harmlos.
-// TODO: statt Datei den Custom Configuration Provider der C/C++-Extension nutzen.
+// Code completion: writes a c_cpp_properties.json so the C/C++ extension finds
+// Arduino.h and friends. The values come from the build properties of the
+// selected board. Without the C/C++ extension this has no effect, but no harm.
+// TODO: use the custom configuration provider of the C/C++ extension instead of a file.
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -12,7 +12,7 @@ export async function writeIntelliSense(cli: Cli, sketch: string, fqbn: string) 
   if (!ws) return;
   const file = path.join(ws.uri.fsPath, '.vscode', 'c_cpp_properties.json');
 
-  // Eine vom Nutzer selbst angelegte Datei nicht überschreiben.
+  // Don't overwrite a file the user created.
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('"ArduDebug"')) return;
 
   const props = parseProps(await cli.run(['compile', '--show-properties', '-b', fqbn, sketch], false));

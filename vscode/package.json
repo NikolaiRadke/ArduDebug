@@ -72,24 +72,39 @@
     "menus": {
       "editor/title": [
         {
-          "command": "ardudebug.compile",
+          "submenu": "ardudebug.menu",
           "when": "resourceExtname == .ino",
           "group": "navigation@1"
+        }
+      ],
+      "ardudebug.menu": [
+        {
+          "command": "ardudebug.compile",
+          "group": "1_build@1"
         },
         {
           "command": "ardudebug.upload",
-          "when": "resourceExtname == .ino",
-          "group": "navigation@2"
-        },
-        {
-          "command": "ardudebug.monitor",
-          "when": "resourceExtname == .ino",
-          "group": "navigation@3"
+          "group": "1_build@2"
         },
         {
           "command": "ardudebug.debug",
-          "when": "resourceExtname == .ino",
-          "group": "navigation@4"
+          "group": "1_build@3"
+        },
+        {
+          "command": "ardudebug.monitor",
+          "group": "2_monitor@1"
+        },
+        {
+          "command": "ardudebug.selectBoard",
+          "group": "3_config@1"
+        },
+        {
+          "command": "ardudebug.selectPort",
+          "group": "3_config@2"
+        },
+        {
+          "command": "ardudebug.selectBaudrate",
+          "group": "3_config@3"
         }
       ]
     },
@@ -107,6 +122,13 @@
         "languages": [
           "cpp"
         ]
+      }
+    ],
+    "submenus": [
+      {
+        "id": "ardudebug.menu",
+        "label": "%submenu.label%",
+        "icon": "$(circuit-board)"
       }
     ]
   },

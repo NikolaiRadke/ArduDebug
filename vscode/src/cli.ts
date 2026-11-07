@@ -1,6 +1,6 @@
-// Alles, was ArduDebug von arduino-cli braucht. arduino-cli nutzt dasselbe
-// Datenverzeichnis wie die Arduino IDE (~/.arduino15 bzw. %LOCALAPPDATA%\Arduino15),
-// ein dort schon installierter ArduDebug-Core wird also mitbenutzt.
+// Everything ArduDebug needs from arduino-cli. arduino-cli uses the same data
+// directory as the Arduino IDE (~/.arduino15 or %LOCALAPPDATA%\Arduino15), so an
+// ArduDebug core already installed there is shared.
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,17 +9,20 @@ import * as vscode from 'vscode';
 export const INDEX_URL =
   'https://raw.githubusercontent.com/NikolaiRadke/ArduDebug/main/package_ardudebug_index.json';
 export const CORE = 'ardudebug:avr';
+// Board package version this extension needs. Older installed versions are
+// upgraded automatically, newer ones are kept.
+export const CORE_VERSION = '1.8.8-1';
 
 export class Cli {
   constructor(private extPath: string, private out: vscode.OutputChannel) {}
 
-  // Mitgeliefertes arduino-cli für dieses System (bin/linux-x64/arduino-cli,
-  // bin/win32-x64/arduino-cli.exe, ...), sonst das aus dem PATH (zum Entwickeln).
+  // Bundled arduino-cli for this system (bin/linux-x64/arduino-cli,
+  // bin/win32-x64/arduino-cli.exe, ...), otherwise the one from PATH (for development).
   get exe(): string {
     const name = process.platform === 'win32' ? 'arduino-cli.exe' : 'arduino-cli';
     const bundled = path.join(this.extPath, 'bin', `${process.platform}-${process.arch}`, name);
     if (!fs.existsSync(bundled)) return name;
-    // VSIX-Dateien bewahren das Ausfuehrungsrecht nicht zuverlaessig.
+    // VSIX files don't reliably keep the executable bit.
     if (process.platform !== 'win32') fs.chmodSync(bundled, 0o755);
     return bundled;
   }
@@ -49,22 +52,32 @@ export class Cli {
     return JSON.parse(await this.run([...args, '--format', 'json'], false));
   }
 
-  // Einmalig: Core samt Bridge und avr-gdb über den Boardverwalter holen.
+  private coreReady = false;
+
+  // Installs the core with bridge and avr-gdb via the boards manager if needed.
+  // Checked only on the first command, not afterwards (saves half a second).
   async ensureCore(): Promise<void> {
+    if (this.coreReady) return;
+    await this.installCore();
+    this.coreReady = true;
+  }
+
+  private async installCore(): Promise<void> {
     const list = await this.json<any>(['core', 'list']);
     const platforms: any[] = Array.isArray(list) ? list : list.platforms ?? [];
-    if (platforms.some((p) => p.id === CORE)) return;
+    const installed: string | undefined = platforms.find((p) => p.id === CORE)?.installed_version;
+    if (installed && compareVersions(installed, CORE_VERSION) >= 0) return;
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t('Setting up ArduDebug …') },
       async () => {
         await this.run(['core', 'update-index', '--additional-urls', INDEX_URL]);
-        await this.run(['core', 'install', CORE, '--additional-urls', INDEX_URL]);
+        await this.run(['core', 'install', `${CORE}@${CORE_VERSION}`, '--additional-urls', INDEX_URL]);
       }
     );
   }
 
-  // Kompilieren (optional mit Hochladen). Für das Debuggen immer ohne LTO und
-  // mit "Für Debugging optimieren" (-DARDUDEBUG), sonst fehlen Variablen.
+  // Compile (optionally upload). For debugging always without LTO and with
+  // "Optimize for Debugging" (-DARDUDEBUG), otherwise variables are missing.
   compile(sketch: string, fqbn: string, buildPath: string, debug: boolean, port?: string) {
     const args = ['compile', '-b', debug ? withOption(fqbn, 'lto', 'off') : fqbn, '--build-path', buildPath];
     if (debug) args.push('--optimize-for-debug');
@@ -81,11 +94,22 @@ export class Cli {
   }
 }
 
-// Hängt eine Board-Option an den FQBN an (ardudebug:avr:uno -> ardudebug:avr:uno:lto=off,
+// Adds a board option to the FQBN (ardudebug:avr:uno -> ardudebug:avr:uno:lto=off,
 // ardudebug:avr:nano:cpu=atmega328old -> ...:cpu=atmega328old,lto=off).
 export function withOption(fqbn: string, key: string, value: string): string {
   const parts = fqbn.split(':');
   const opts = (parts[3] ?? '').split(',').filter((o) => o && !o.startsWith(key + '='));
   opts.push(`${key}=${value}`);
   return parts.slice(0, 3).join(':') + ':' + opts.join(',');
+}
+
+// Compares versions like 1.8.8-0 and 1.8.8-1 number by number.
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split(/[.-]/).map(Number);
+  const pb = b.split(/[.-]/).map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
 }

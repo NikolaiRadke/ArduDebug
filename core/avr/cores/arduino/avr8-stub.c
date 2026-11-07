@@ -1703,6 +1703,10 @@ static void gdb_send_reply(const char *reply)
 __attribute__((optimize("-Os")))
 static void gdb_send_state(uint8_t signo)
 {
+	/* ArduDebug: any stop reported to GDB also satisfies a pending pause
+	   request. Otherwise a pause that arrives just before a breakpoint is hit
+	   would stay armed and stop the program at the next loop() pass. */
+	debug_pause_req = 0;
 	uint32_t pc = (uint32_t)gdb_ctx->pc << 1;
 
 

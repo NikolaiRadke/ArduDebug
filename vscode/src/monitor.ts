@@ -1,6 +1,6 @@
-// Serieller Monitor: startet "arduino-cli monitor" in einem VS-Code-Terminal.
-// Vor dem Hochladen und Debuggen wird er geschlossen (der Port muss frei sein)
-// und danach automatisch wieder geöffnet.
+// Serial monitor: runs "arduino-cli monitor" in a VS Code terminal.
+// It is closed before uploading and debugging (the port must be free) and
+// reopened automatically afterwards.
 import * as vscode from 'vscode';
 import { Cli } from './cli';
 
@@ -9,7 +9,7 @@ const BAUDRATES = [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 1152
 export class Monitor {
   private terminal?: vscode.Terminal;
   private port?: string;
-  private reopenPort?: string; // nach Hochladen/Debuggen wieder öffnen
+  private reopenPort?: string; // reopen after uploading/debugging
   private item: vscode.StatusBarItem;
   private subs: vscode.Disposable[] = [];
 
@@ -18,6 +18,7 @@ export class Monitor {
     this.item.command = 'ardudebug.selectBaudrate';
     this.item.tooltip = vscode.l10n.t('ArduDebug: select baud rate');
     this.updateItem();
+    this.closeLeftovers();
     this.subs.push(
       vscode.window.onDidCloseTerminal((t) => {
         if (t === this.terminal) this.terminal = undefined;
@@ -28,6 +29,18 @@ export class Monitor {
   dispose() {
     this.item.dispose();
     this.subs.forEach((s) => s.dispose());
+  }
+
+  // Monitors from an earlier session (restored by VS Code) hold the port
+  // without us knowing about them. So close them on startup.
+  private closeLeftovers() {
+    for (const t of vscode.window.terminals) {
+      const opts = t.creationOptions as vscode.TerminalOptions;
+      const ours =
+        (opts.shellPath?.includes('arduino-cli') && opts.shellArgs?.[0] === 'monitor') ||
+        ['Serial Monitor', 'Serieller Monitor'].includes(t.name);
+      if (ours) t.dispose();
+    }
   }
 
   get baudrate(): number {
@@ -46,12 +59,13 @@ export class Monitor {
       shellPath: this.cli.exe,
       shellArgs: ['monitor', '-p', port, '--config', `baudrate=${this.baudrate}`, '--quiet'],
       iconPath: new vscode.ThemeIcon('output'),
+      isTransient: true, // don't restore when VS Code restarts
     });
     this.terminal.show(true);
   }
 
-  // Schließt den Monitor, merkt ihn zum Wiederöffnen vor und wartet kurz,
-  // bis das Betriebssystem den Port freigegeben hat.
+  // Closes the monitor, remembers to reopen it and waits briefly until
+  // the operating system has released the port.
   async suspend() {
     if (!this.terminal) return;
     this.reopenPort = this.port;
@@ -73,7 +87,7 @@ export class Monitor {
     if (!pick) return;
     await this.state.update('baudrate', Number(pick.label));
     this.updateItem();
-    if (this.terminal && this.port) this.open(this.port); // mit neuer Baudrate neu starten
+    if (this.terminal && this.port) this.open(this.port); // restart with the new baud rate
   }
 
   private updateItem() {

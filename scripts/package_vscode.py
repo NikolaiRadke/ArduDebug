@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-# Baut die VS-Code-Extension als VSIX-Dateien mit mitgeliefertem arduino-cli.
-# arduino-cli liegt in vscode/bin/<system>-<cpu>/, die Extension waehlt beim
-# Start das passende. Nur fuer die Entwicklung, Endnutzer brauchen kein Python.
+# Builds the VS Code extension as VSIX files with a bundled arduino-cli.
+# arduino-cli is placed in vscode/bin/<system>-<cpu>/, the extension picks the
+# right one at startup. For development only, end users don't need Python.
 #
-#   dist/github/       je eine VSIX fuer Linux, Windows und macOS (Intel + Apple)
-#                      -> ans GitHub-Release haengen
-#   dist/marketplace/  je eine VSIX pro Plattformkennung (--target)
+#   dist/github/       one VSIX each for Linux, Windows and macOS (Intel + Apple)
+#                      -> attach to the GitHub release
+#   dist/marketplace/  one VSIX per platform target (--target)
 #                      -> npx vsce publish --packagePath dist/marketplace/*.vsix
 #
-# Aufruf:  python3 scripts/package_vscode.py
+# Usage:  python3 scripts/package_vscode.py
 import hashlib, io, json, shutil, subprocess, sys, tarfile, urllib.request, zipfile
 from pathlib import Path
 
 CLI_VERSION = "1.5.1"
 CLI_URL = f"https://github.com/arduino/arduino-cli/releases/download/v{CLI_VERSION}"
 
-# Ordner in vscode/bin/ (= process.platform-process.arch in Node) -> Archiv von arduino-cli
+# Folder in vscode/bin/ (= process.platform-process.arch in Node) -> arduino-cli archive
 TARGETS = {
     "linux-x64":    f"arduino-cli_{CLI_VERSION}_Linux_64bit.tar.gz",
     "win32-x64":    f"arduino-cli_{CLI_VERSION}_Windows_64bit.zip",
@@ -23,9 +23,9 @@ TARGETS = {
     "darwin-arm64": f"arduino-cli_{CLI_VERSION}_macOS_ARM64.tar.gz",
 }
 
-# GitHub: eine VSIX pro Betriebssystem -> enthaltene arduino-cli-Varianten.
-# Ohne Plattformkennung, sonst lehnt VS Code z. B. die Intel-Variante auf einem
-# Apple-Mac ab. Der Marketplace bekommt je Variante eine eigene VSIX mit Kennung.
+# GitHub: one VSIX per operating system -> included arduino-cli variants.
+# Without platform target, otherwise VS Code rejects e.g. the Intel variant on an
+# Apple Silicon Mac. The Marketplace gets a separate VSIX with target per variant.
 GITHUB = {
     "linux":   ["linux-x64"],
     "windows": ["win32-x64"],
@@ -39,24 +39,24 @@ CACHE = OUT / "cli-cache"
 
 
 def download(name):
-    """Laedt eine Datei von den arduino-cli-Releases, mit Zwischenspeicher."""
+    """Downloads a file from the arduino-cli releases, with cache."""
     CACHE.mkdir(parents=True, exist_ok=True)
     path = CACHE / name
     if not path.exists():
-        print(f"  lade {name}")
+        print(f"  downloading {name}")
         with urllib.request.urlopen(f"{CLI_URL}/{name}") as r:
             path.write_bytes(r.read())
     return path.read_bytes()
 
 
 def checksums():
-    """Pruefsummen der Release-Dateien: {Dateiname: sha256}"""
+    """Checksums of the release files: {file name: sha256}"""
     text = download(f"{CLI_VERSION}-checksums.txt").decode()
     return {line.split()[1].lstrip("*"): line.split()[0] for line in text.splitlines() if line.strip()}
 
 
 def extract_cli(archive_name, data, bin_dir):
-    """Holt die arduino-cli-Datei aus dem Archiv und legt sie nach bin_dir."""
+    """Extracts the arduino-cli binary from the archive into bin_dir."""
     bin_dir.mkdir(parents=True)
     if archive_name.endswith(".zip"):
         with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -74,13 +74,13 @@ def run(cmd):
 
 
 def package(folders, vsix, sums, target=None):
-    """Packt die Extension mit den arduino-cli-Varianten aus folders."""
+    """Packages the extension with the arduino-cli variants from folders."""
     shutil.rmtree(EXT / "bin", ignore_errors=True)
     for folder in folders:
         archive = TARGETS[folder]
         data = download(archive)
         if hashlib.sha256(data).hexdigest() != sums.get(archive):
-            sys.exit(f"Pruefsumme von {archive} stimmt nicht!")
+            sys.exit(f"Checksum of {archive} does not match!")
         extract_cli(archive, data, EXT / "bin" / folder)
     cmd = ["npx", "vsce", "package", "--skip-license", "-o", str(vsix)]
     if target:
@@ -88,11 +88,21 @@ def package(folders, vsix, sums, target=None):
     run(cmd)
 
 
+def check_node():
+    """vsce needs Node 22.12 or newer (require() of ES modules)."""
+    out = subprocess.run(["node", "-v"], capture_output=True, text=True,
+                         shell=sys.platform == "win32").stdout.strip()
+    major, minor = (int(x) for x in out.lstrip("v").split(".")[:2])
+    if (major, minor) < (22, 12):
+        sys.exit(f"Node {out} is too old, vsce needs at least v22.12.")
+
+
 def main():
+    check_node()
     version = json.loads((EXT / "package.json").read_text())["version"]
     sums = checksums()
 
-    print("Extension kompilieren")
+    print("Compiling extension")
     run(["npm", "ci"])
     run(["npm", "run", "compile"])
 
@@ -107,7 +117,7 @@ def main():
         package([target], OUT / "marketplace" / f"ardudebug-{target}-{version}.vsix", sums, target)
 
     shutil.rmtree(EXT / "bin", ignore_errors=True)
-    print(f"\nFertig, die VSIX-Dateien liegen in {OUT}/github und {OUT}/marketplace")
+    print(f"\nDone, the VSIX files are in {OUT}/github and {OUT}/marketplace")
 
 
 if __name__ == "__main__":
