@@ -391,11 +391,15 @@ static void gdb_send_buff(const uint8_t *buff, uint8_t sz);
 
 /* ArduDebug: set to 1 by the first pause request (Ctrl-C) while the program
    runs. main() checks it before each loop() pass and calls debug_pause_point(),
-   which sets it to 2; the INT0 handler then stops and sets it back to 0. */
+   which sets it to 2; the INT0 handler sets it to 3 once the program is back
+   in main(), stops at the start of loop() and sets it back to 0. */
 volatile uint8_t debug_pause_req;
 /* ArduDebug: stack pointer inside debug_pause_point(); the INT0 handler only
    stops once the program has returned from there (SP above this value). */
 static volatile uint16_t debug_pause_sp;
+/* ArduDebug: stack pointer of main() after the return from debug_pause_point();
+   the pause stops at the first instruction below it, which is loop(). */
+static volatile uint16_t debug_pause_main_sp;
 /* ArduDebug: Cortex-Debug 1.5.1 keeps only the first symbol per address. The
    first variable in .data and in .bss shares its address with the section
    symbols and would be missing from the "Global" list. These two bytes take
@@ -775,7 +779,7 @@ void debug_usb_rx(void)
 	   is active anyway and its handler checks the flag. Enabling it here
 	   would be wrong then: this may run inside the handler's window for the
 	   other interrupts, and it would fire nested in the handler itself. */
-	if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req != 2 )
+	if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req < 2 )
 		gdb_enable_swinterrupt();
 }
 #endif
@@ -1368,9 +1372,9 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 		"lds	r24, %[step]\n"		/* single step: full path */
 		"tst	r24\n"
 		"brne	2f\n"
-		"lds	r24, %[pause]\n"		/* armed pause: full path */
+		"lds	r24, %[pause]\n"		/* armed pause (2 or 3): full path */
 		"cpi	r24, 2\n"
-		"breq	2f\n"
+		"brsh	2f\n"
 		FP_UART_CHECK
 		"in	r30, __SP_L__\n"		/* return address: above the pushes */
 		"in	r31, __SP_H__\n"
@@ -1446,11 +1450,23 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	gdb_ctx->pc = R_PC;
 	gdb_ctx->sp = R_SP;
 
-	/* ArduDebug: armed pause from debug_pause_point(). While the program is
-	   still inside that function, just return: the interrupt stays pending and
-	   comes back after the next instruction. Stop once it is back in main(). */
+	/* ArduDebug: armed pause from debug_pause_point(), in two phases. The
+	   interrupt stays pending and comes back after every instruction.
+	   2: still inside debug_pause_point(). Once the program is back in main(),
+	      remember main's stack pointer and go on to phase 3.
+	   3: still in main(). Stop as soon as the stack pointer is below main's,
+	      that is at the first instruction of loop(), so the user sees the
+	      sketch and not main.cpp. (Other interrupts can't get in between:
+	      they run with interrupts disabled.) */
 	if ( debug_pause_req == 2 ) {
-		if ( R_SP <= debug_pause_sp )
+		if ( R_SP > debug_pause_sp ) {
+			debug_pause_main_sp = R_SP;
+			debug_pause_req = 3;
+		}
+		goto out;
+	}
+	if ( debug_pause_req == 3 ) {
+		if ( R_SP >= debug_pause_main_sp )
 			goto out;
 		debug_pause_req = 0;
 		gdb_ctx->target_running = 0;
@@ -1466,7 +1482,7 @@ ISR(AVR8_SWINT_VECT, ISR_BLOCK ISR_NAKED )
 	   like the UART interrupt does on the Uno (pause, typed characters). */
 	if ( debug_usb_pending && !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled ) {
 		handle_exception();
-		if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req != 2 )
+		if ( !gdb_ctx->breakpoint_enabled && !gdb_ctx->singlestep_enabled && debug_pause_req < 2 )
 			gdb_disable_swinterrupt();
 		goto out;
 	}
@@ -1576,8 +1592,8 @@ void breakpoint(void)
 
 /* ArduDebug: called by main() before a loop() pass when a pause was requested.
    It does not stop here itself: it arms the pause and enables the software
-   interrupt, so the stop happens in the INT0 handler right after the return
-   to main(). There the reported PC is real code of the program, and stepping
+   interrupt, so the stop happens in the INT0 handler at the first instruction
+   of loop(). There the reported PC is real code of the sketch, and stepping
    on from it works like after any other stop. */
 __attribute__((noinline))
 void debug_pause_point(void)

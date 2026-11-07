@@ -53,7 +53,7 @@ test_case() {	# name sketch mcu variant board f_cpu [high]
 	M=$(printf '%x' $((0x$M & 0xffff)))
 	# high: a second breakpoint 128 KB lower, same lower 16 bits: must not hit
 	local N=; [ "$7" = high ] && N=$(printf '%x' $((0x$T - 0x20000)))
-	"$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
+	LOOP_ADDR=$(sym "$E" loop) "$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
 }
 test_case uno        sketch.cpp      atmega328p standard AVR_UNO      16000000
 test_case pro-8mhz   sketch.cpp      atmega328p standard AVR_PRO       8000000

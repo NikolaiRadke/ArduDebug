@@ -58,10 +58,11 @@ int main(void)
 	setup();
     
 #ifdef ARDUDEBUG
-	// Ganze Schleife in einer Zeile: Nach dem Ende von loop() landet ein
-	// Einzelschritt mitten in dieser Zeile, GDB hält dort nicht an, und der
-	// Nutzer kommt direkt wieder am Anfang von loop() an, ohne main.cpp zu sehen.
-	for (;;) { if (debug_pause_req == 1) { debug_pause_point(); asm volatile ("nop"); } loop(); if (serialEventRun) serialEventRun(); }
+	// Whole loop on one line: after the end of loop(), a step lands in the
+	// middle of this line, GDB does not stop here, and the user gets straight
+	// back to the start of loop() without ever seeing main.cpp.
+	// A pause request stops at the start of loop() (see avr8-stub.c).
+	for (;;) { if (debug_pause_req == 1) debug_pause_point(); loop(); if (serialEventRun) serialEventRun(); }
 #else
 	for (;;) {
 		loop();

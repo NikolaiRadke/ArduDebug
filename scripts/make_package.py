@@ -14,7 +14,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "1.8.8-1"
+VERSION = "1.8.8-2"
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "core" / "avr"
