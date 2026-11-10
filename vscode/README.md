@@ -37,6 +37,13 @@ When an `.ino` file is open, you find the **ArduDebug button** (circuit board ic
 
 All commands are also available in the Command Palette under *ArduDebug*.
 
+## Debugging tips
+
+* **Pause** stops at the line of your sketch the program is working on. The marked line is always the **next** line to run. So if the program was waiting in `delay()`, you see the line after the `delay()`: the wait ends at once when you pause.
+* **Step** over the last line of `loop()` takes you straight back to the start of `loop()`. **Step Out** of `loop()` does the same.
+* ArduDebug never shows the Arduino core (`main.cpp`, `wiring.c` and so on) while you step. Library code is shown if you step into it.
+* Debug builds are always made without LTO, so all your variables are visible.
+
 ## Board, port and baud rate
 
 ArduDebug shows the board, the port and the baud rate in the status bar at the bottom.
@@ -53,11 +60,11 @@ During debugging, the serial port belongs to the debugger, and the Serial Monito
 
 ## Supported boards
 
-All boards of *Arduino AVR Boards* except the Gemma. Tested so far:
+All boards of *Arduino AVR Boards* except the Gemma. Tested so far in VS Code and the Arduino IDE on Linux and Windows:
 
-* **Arduino Uno**: VS Code and Arduino IDE (Linux, Windows)
-* **Arduino Nano**: Arduino IDE (Linux, Windows)
-* **Arduino Leonardo**: Arduino IDE (Linux)
+* **Arduino Uno**
+* **Arduino Nano** (also with the old bootloader)
+* **Arduino Leonardo**
 
 macOS and the Mega 2560 have not been tested yet. If you can test them, please open an [issue](https://github.com/NikolaiRadke/ArduDebug/issues) and tell me what happened, whether it works or not.
 

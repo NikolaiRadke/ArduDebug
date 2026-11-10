@@ -1,7 +1,7 @@
 ![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner_4.png)
 # ArduDebug
 
-Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable. Based on Arduino AVR Boards V1.8.8.  
+Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable. Also available as an extension for **VS Code**, see [ArduDebug for VS Code](#ardudebug-for-vs-code). Based on Arduino AVR Boards V1.8.8.  
 
 🆕 What's new?  
 * **07.11.2026** Release **V1.8.8-3**: Pause stops at the sketch line the program is working on.  
@@ -24,7 +24,7 @@ All boards of *Arduino AVR Boards* can be selected under *Tools → Board → Ar
 
 ## Testers wanted
 
-ArduDebug is tested on Linux and Windows with the Uno and the Nano, and on Linux with the Leonardo. Help is welcome for:
+ArduDebug is tested on Linux and Windows with the Uno, the Nano and the Leonardo, in the Arduino IDE and in VS Code. Help is welcome for:
 
 - **macOS** (Apple Silicon and Intel): the package includes macOS builds, but they have never been tried.
 - **Mega 2560** and other untested boards from the list above.
@@ -39,9 +39,13 @@ If you can test one of these, please open an [issue](https://github.com/NikolaiR
   
 ![Screenshot](http://www.nikolairadke.de/aiduino/ardudebug_screenshot.png)
 
+## Pause
+
+*Pause* stops at the line of your sketch the program is working on. The marked line is always the **next** line to run. Most of the time a sketch waits in `delay()`: then the wait ends at once, and you see the line after the `delay()`. The Arduino core (`main.cpp`, `wiring.c` and so on) is never shown.
+
 ## Serial while debugging
 
-In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor, and what you type there (followed by Enter) arrives in `Serial.read()`.
+In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor, and what you type there (followed by Enter) arrives in `Serial.read()`. In VS Code the output appears in the **Debug Console**; input to `Serial.read()` is not available there.
 
 - Each line you type ends with a newline (`\n`).
 - Input typed while the program is stopped is delivered as soon as it continues.
@@ -61,7 +65,7 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 
 ### Requirements
 
-- Arduino IDE 2.3 or newer (Linux or Windows)
+- Arduino IDE 2.3 or newer (Linux or Windows), or VS Code with the ArduDebug extension (see below)
 - A supported board and a USB cable – nothing else
 
 ### Install ArduDebug
@@ -84,8 +88,17 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 
 > [!TIP]
 > - Global variables are easiest to inspect in the *Watch* view: click *+* and enter the variable name.
-> - To see your global variables in the *Variables* view (section *Global*) and change them there, select *Tools → LTO → Disabled*. The sketch gets slightly larger; switch back to *Enabled* for the final upload.
+> - Debug builds are always made without LTO, whatever *Tools → LTO* says, so all your variables are visible. The LTO setting only applies to normal uploads.
 > - Close the Serial Monitor before debugging, and stop the debug session before uploading.
+
+### ArduDebug for VS Code
+
+The extension brings everything it needs: the board package, the Arduino CLI and the debugger. You don't need the Arduino IDE.
+
+1. Install **ArduDebug** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=NikolaiRadke.ardudebug), or download the file for your system from the [releases](https://github.com/NikolaiRadke/ArduDebug/releases) and install it via *Extensions → … → Install from VSIX*.
+2. Open a sketch (`.ino` file), set a breakpoint and press **F5**.
+
+Verify, Upload, Serial Monitor and the board, port and baud rate settings are in the ArduDebug menu (circuit board icon) at the top right of the editor. More in the [extension's README](vscode/README.md).
 
 ### Updating
 
@@ -117,7 +130,8 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 - No watchpoints (stopping when a variable changes).
 - While the program is stopped or single-stepping, interrupts do not run: millis() does not count on, and Servo pulses or tone() stop. Hardware PWM (analogWrite) keeps running.
 - Local variables are often shown as *optimized out*, because debug builds are still optimized for size.
-- Stepping past the end of `loop()` leads into the core's `main.cpp`.
+- A step over the last line of `loop()` takes you back to the start of `loop()`. *Step Out* of `loop()`, however, leads into the core's `main.cpp` in the Arduino IDE (VS Code handles this and returns to the start of `loop()`).
+- *Pause* ends a running `delay()` early. If you continue afterwards, that one wait is shorter.
 - Sketches with their own `main()` instead of `setup()`/`loop()` can be debugged as long as they call `init()`. After clicking the debug button, the program stops inside `init()`; press *Continue* (F5) to run to your breakpoint. *Pause* stops wherever the program is.
 - When the debug session starts or you click *Restart*, the board is reset and your sketch starts from the beginning. When the session ends, the board is reset again and the sketch runs normally. Without a debug session, a debug build runs normally.
 

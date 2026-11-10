@@ -5,8 +5,8 @@
 #
 #   dist/github/       one VSIX each for Linux, Windows and macOS (Intel + Apple)
 #                      -> attach to the GitHub release
-#   dist/marketplace/  one VSIX per platform target (--target)
-#                      -> npx vsce publish --packagePath dist/marketplace/*.vsix
+#   dist/marketplace/  one VSIX for all systems (all arduino-cli variants)
+#                      -> upload on marketplace.visualstudio.com/manage
 #
 # Usage:  python3 scripts/package_vscode.py
 import hashlib, io, json, shutil, subprocess, sys, tarfile, urllib.request, zipfile
@@ -25,7 +25,8 @@ TARGETS = {
 
 # GitHub: one VSIX per operating system -> included arduino-cli variants.
 # Without platform target, otherwise VS Code rejects e.g. the Intel variant on an
-# Apple Silicon Mac. The Marketplace gets a separate VSIX with target per variant.
+# Apple Silicon Mac. The Marketplace gets one VSIX with all variants, because
+# the manual upload on the management page takes only one file per version.
 GITHUB = {
     "linux":   ["linux-x64"],
     "windows": ["win32-x64"],
@@ -113,8 +114,7 @@ def main():
 
     print("\nMarketplace")
     (OUT / "marketplace").mkdir(parents=True, exist_ok=True)
-    for target in TARGETS:
-        package([target], OUT / "marketplace" / f"ardudebug-{target}-{version}.vsix", sums, target)
+    package(list(TARGETS), OUT / "marketplace" / f"ardudebug-{version}.vsix", sums)
 
     shutil.rmtree(EXT / "bin", ignore_errors=True)
     print(f"\nDone, the VSIX files are in {OUT}/github and {OUT}/marketplace")
