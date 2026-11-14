@@ -9,6 +9,8 @@
  *   neg     optional: a breakpoint that must never be hit (hex)
  *
  * The test sketch calls target() once, as soon as millis() >= 1000.
+ * With PLAIN=1 in the environment, no debugger announces itself: the sketch
+ * (sketch_plain.cpp) must then use Serial like a normal build, at 9600 baud.
  * Exit code 0: all checks passed.
  */
 #include <stdio.h>
@@ -152,6 +154,50 @@ static void check(int ok, const char *what)
 		failed = 1;
 }
 
+/* like the bridge: send 0x02 ("debugger is coming") every 2 ms until the
+   stub answers with 0x02; it then waits for GDB before setup() */
+static int announce(void)
+{
+	rxn = 0; rx[0] = 0;
+	for (int i = 0; i < 50; i++) {
+		send("\x02");
+		run_until(now() + 0.002);
+		if (strchr(rx, 0x02))
+			return 1;
+	}
+	return 0;
+}
+
+/* plain mode: no announcement; Serial works like in a normal build */
+static int plain(const char *mcu, uint32_t f_cpu)
+{
+	/* UCSRnA and UBRRnL/H in the data space */
+	unsigned a = 0xC0, l = 0xC4, h = 0xC5;
+	if (!strcmp(mcu, "atmega8")) {
+		a = 0x2B; l = 0x29; h = 0x40;
+	}
+	/* 9600 baud like HardwareSerial::begin(): double speed */
+	unsigned want = (f_cpu / 4 / 9600 - 1) / 2;
+	byte_cycles = f_cpu * 10 / 9600;
+
+	run_until(0.1);
+	check(!strcmp(rx, "Hello\r\n"), "plain text, no debugger packets");
+	unsigned ubrr = avr->data[l] | (avr->data[h] & 0x0f) << 8;
+	check(ubrr == want && (avr->data[a] & 0x02), "baud rate from Serial.begin(9600)");
+
+	/* GDB's special characters too: only input now, nothing may stop */
+	rxn = 0; rx[0] = 0;
+	send("$a\x03#");
+	run_until(now() + 0.1);
+	check(!memcmp(rx, "<$><a><\x03><#>", 12) && rxn == 12, "input arrives at Serial.read()");
+	uint32_t m0 = millis();
+	run_until(now() + 0.2);
+	check(millis() - m0 >= 190, "program runs on, millis() counts");
+
+	printf(failed ? "FAILED\n" : "PASSED\n");
+	return failed;
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 6) {
@@ -201,8 +247,14 @@ int main(int argc, char **argv)
 	avr_irq_register_notify(out, uart_out, NULL);
 	uart_in = avr_io_getirq(avr, AVR_IOCTL_UART_GETIRQ('0'), UART_IRQ_INPUT);
 
-	run_until(0.2);
-	check(millis() >= 190, "sketch runs, millis() counts");
+	if (getenv("PLAIN"))
+		return plain(argv[2], fw.frequency);
+
+	check(announce(), "stub answers the announcement");
+	command("c", "", 0.005);
+	uint32_t m = millis();
+	run_until(now() + 0.2);
+	check(millis() - m >= 190, "sketch runs, millis() counts");
 
 	rxn = 0; rx[0] = 0;
 	send("\x03");
@@ -225,7 +277,10 @@ int main(int argc, char **argv)
 	if (!hit)
 		return 1;
 	check(stop_pc() == target, "stopped at target()");
-	check(millis() >= 1000 && millis() < 1010, "stopped right when millis() reached 1000");
+	/* SLACK (ms, from run.sh): the print sketch checks millis() only between
+	   two lines, which take a while with a breakpoint set */
+	uint32_t slack = getenv("SLACK") ? strtoul(getenv("SLACK"), 0, 10) : 10;
+	check(millis() >= 1000 && millis() < 1000 + slack, "stopped right when millis() reached 1000");
 	check(now() > 0.99 && now() < 1.05, "millis() in step with the clock");
 
 	uint32_t pc = stop_pc();

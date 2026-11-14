@@ -49,6 +49,7 @@ sym() { avr-nm "$1" | awk -v s="$2" '$3 == s { sub(/^0+/, "", $1); print $1 }'; 
 
 fail=0
 test_case() {	# name sketch mcu variant board f_cpu [high]
+	local slack=10; case $2 in sketch_print*) slack=30 ;; esac
 	echo "=== $1"
 	build "$1" "$2" "$3" "$4" "$5" "$6"
 	local E=$B/$1/s.elf
@@ -56,7 +57,7 @@ test_case() {	# name sketch mcu variant board f_cpu [high]
 	M=$(printf '%x' $((0x$M & 0xffff)))
 	# high: a second breakpoint 128 KB lower, same lower 16 bits: must not hit
 	local N=; [ "$7" = high ] && N=$(printf '%x' $((0x$T - 0x20000)))
-	CORE_START=$(sym "$E" __ardudebug_core_start) "$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
+	SLACK=$slack CORE_START=$(sym "$E" __ardudebug_core_start) "$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
 }
 test_case uno        sketch.cpp      atmega328p standard AVR_UNO      16000000
 test_case pro-8mhz   sketch.cpp      atmega328p standard AVR_PRO       8000000
@@ -68,5 +69,16 @@ test_case mega-high  sketch_high.cpp atmega2560 mega     AVR_MEGA2560 16000000 h
 test_case mega1280   sketch.cpp      atmega1280 mega     AVR_MEGA     16000000
 test_case uno-print  sketch_print.cpp atmega328p standard AVR_UNO     16000000
 test_case mega-print sketch_print.cpp atmega2560 mega     AVR_MEGA2560 16000000
+# no debugger announces itself: Serial like in a normal build
+plain_case() {	# name mcu variant board f_cpu
+	echo "=== $1"
+	build "$1" sketch_plain.cpp "$2" "$3" "$4" "$5"
+	local E=$B/$1/s.elf M=$(sym "$B/$1/s.elf" timer0_millis)
+	M=$(printf '%x' $((0x$M & 0xffff)))
+	PLAIN=1 "$B/harness" "$E" "$2" "$5" 0 "$M" 2>/dev/null || fail=1
+}
+plain_case uno-plain  atmega328p standard AVR_UNO      16000000
+plain_case pro-plain  atmega328p standard AVR_PRO       8000000
+plain_case mega-plain atmega2560 mega     AVR_MEGA2560 16000000
 [ $fail = 0 ] && echo "ALL PASSED" || echo "SOME TESTS FAILED"
 exit $fail

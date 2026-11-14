@@ -139,6 +139,14 @@ void debug_message(const char* msg);
  */
 uint8_t debug_write(const char* buf, uint8_t len);
 
+/**
+ * ArduDebug (not ATmega32U4): 1 if no debugger announced itself at the start.
+ * Serial output is then plain text at the rate of Serial.begin(), set with
+ * debug_set_baud(), and received bytes go to Serial.read().
+ */
+extern uint8_t debug_plain;
+void debug_set_baud(unsigned long baud, uint8_t config);
+
 #ifdef __cplusplus
 }
 #endif

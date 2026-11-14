@@ -7,6 +7,8 @@
   sends all output through the debugger instead; the ArduDebug bridge shows
   it in the gdb-server terminal of the Arduino IDE. What is typed in that
   terminal arrives in a 64 byte receive buffer, like with HardwareSerial.
+  Without a debugger (Uno, Nano, Mega), Serial works like in a normal build:
+  plain text at the rate of begin(), readable in the Serial Monitor.
 */
 
 #ifndef DebugSerial_h
@@ -21,8 +23,10 @@ extern "C" uint8_t debug_cdc_open(void);	// CDC.cpp
 class DebugSerial : public Stream
 {
   public:
-    void begin(unsigned long) {}
-    void begin(unsigned long, uint8_t) {}
+    // Without a debugger (plain mode) begin() sets the baud rate like
+    // HardwareSerial does. With a debugger the stub keeps its own rate.
+    void begin(unsigned long baud) { begin(baud, 0x06); }	// SERIAL_8N1
+    void begin(unsigned long baud, uint8_t config);
     void end() {}
     virtual int available(void);
     virtual int peek(void);

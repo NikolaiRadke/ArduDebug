@@ -414,6 +414,14 @@ static inline uint8_t debug_in_sketch(uint32_t pc_words)
 static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
 static volatile uint8_t debug_bss_pad __attribute__((section(".bss")));
 
+#if !AVR8_USB_CDC
+/* ArduDebug: 1 if no debugger announced itself at the start (plain mode).
+   Serial then works like in a normal build: plain text at the sketch's baud
+   rate, and every received byte is input for Serial.read(). The debugger
+   resets the board when it connects, so this is decided anew each start. */
+uint8_t debug_plain;
+#endif
+
 /* ArduDebug: receives each character typed in the gdb-server terminal.
    Called with interrupts disabled. This default drops it; DebugSerial.cpp
    provides the real one when the sketch uses Serial. */
@@ -553,6 +561,7 @@ void debug_init(void)
 #else
 	for (uint8_t i = 0; i < 200 && !debug_bss_pad; i++)
 		_delay_us(100);
+	debug_plain = !debug_bss_pad;
 #endif
 }
 
@@ -1268,8 +1277,12 @@ ISR(UART_ISR_VECTOR, ISR_BLOCK ISR_NAKED)
 	gdb_ctx->pc = R_PC;
 	gdb_ctx->sp = R_SP;	
 	
-	/* Communicate with gdb */
-	handle_exception();	
+	/* Communicate with gdb. ArduDebug: in plain mode the byte is input for
+	   Serial.read(); reading UDR clears the interrupt. */
+	if (debug_plain)
+		debug_rx_char(UDR);
+	else
+		handle_exception();
 
 	restore_regs ();
 
@@ -1635,6 +1648,12 @@ uint8_t debug_write(const char* buf, uint8_t len)
 	/* ArduDebug: only the stub's own interrupts (UART receive, software
 	   interrupt) are held back while the packet goes out. All others keep
 	   running: millis(), tone(), Servo... */
+	/* ArduDebug: no debugger: plain text, like HardwareSerial */
+	if (debug_plain) {
+		for (uint8_t i = 0; i < len; i++)
+			putDebugChar(buf[i]);
+		return len;
+	}
 	cli();
 	uint8_t ucsrb = UCSRB, eimsk = EIMSK;
 	UCSRB = ucsrb & ~_BV(RXCIE);
@@ -1654,6 +1673,31 @@ uint8_t debug_write(const char* buf, uint8_t len)
 	SREG = cSREG;
 	return len;
 }
+
+#if !AVR8_USB_CDC
+/* ArduDebug: Serial.begin() in plain mode: set the sketch's baud rate and
+   frame format, computed like HardwareSerial::begin(). With a debugger the
+   stub keeps its own rate. */
+void debug_set_baud(unsigned long baud, uint8_t config)
+{
+	if (!debug_plain)
+		return;
+	uint16_t setting = (F_CPU / 4 / baud - 1) / 2;
+	uint8_t ucsra = _BV(U2X);
+	if ((F_CPU == 16000000UL && baud == 57600) || setting > 4095) {
+		ucsra = 0;	/* like HardwareSerial: without double speed */
+		setting = (F_CPU / 8 / baud - 1) / 2;
+	}
+	UCSRA = ucsra;
+	UBRRH = setting >> 8;
+	UBRRL = setting;
+#ifdef URSEL
+	UCSRC = _BV(URSEL) | config;	/* ATmega8: URSEL selects UCSRC */
+#else
+	UCSRC = config;
+#endif
+}
+#endif
 
 /* ------------------------------------------------------------- */
 

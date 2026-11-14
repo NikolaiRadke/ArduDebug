@@ -48,7 +48,17 @@ int DebugSerial::read(void)
   return c;
 }
 
-// Sends the text in as many debugger packets as needed.
+void DebugSerial::begin(unsigned long baud, uint8_t config)
+{
+#if defined(__AVR_ATmega32U4__)
+  (void)baud; (void)config;	// USB: the baud rate doesn't matter
+#else
+  debug_set_baud(baud, config);
+#endif
+}
+
+// Sends the text in as many debugger packets as needed (without a debugger:
+// as plain text, see debug_write()).
 size_t DebugSerial::write(const uint8_t *buffer, size_t size)
 {
   size_t done = 0;
