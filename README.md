@@ -45,14 +45,14 @@ If you can test one of these, please open an [issue](https://github.com/NikolaiR
 
 ## Serial while debugging
 
-In debug builds the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the output appears in the **gdb-server** tab at the bottom of the IDE instead of the Serial Monitor, and what you type there (followed by Enter) arrives in `Serial.read()`. In VS Code the output appears in the **Debug Console**; input to `Serial.read()` is not available there.
+During a debug session the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the Serial Monitor keeps showing the output, and what you type there arrives in `Serial.read()`. The output also appears in the **gdb-server** tab at the bottom of the IDE, and you can type there too (followed by Enter). In VS Code the output appears in the **Debug Console**; input to `Serial.read()` is not available there.
 
 - Each line you type ends with a newline (`\n`).
 - Input typed while the program is stopped is delivered as soon as it continues.
 - The receive buffer holds 63 characters, like the normal `Serial`.
 - The Serial Plotter is not available during debugging.
 - During a debug session the baud rate in `Serial.begin()` is ignored.
-- Without a debug session, a debug build behaves like a normal build: the Serial Monitor shows the output at the baud rate of `Serial.begin()`, and what you type there arrives in `Serial.read()`. So you can leave a debug build on the board. Close the Serial Monitor before you start debugging, otherwise it reports that the port is busy.
+- Without a debug session, a debug build behaves like a normal build: the Serial Monitor shows the output at the baud rate of `Serial.begin()`. So you can leave a debug build on the board.
 
 ## Peripherals view
 
@@ -89,7 +89,7 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 > [!TIP]
 > - Global variables are easiest to inspect in the *Watch* view: click *+* and enter the variable name.
 > - Debug builds are always made without LTO, whatever *Tools → LTO* says, so all your variables are visible. The LTO setting only applies to normal uploads.
-> - Close the Serial Monitor before debugging, and stop the debug session before uploading.
+> - The Serial Monitor can stay open while you debug. Stop the debug session before uploading.
 
 ### ArduDebug for VS Code
 

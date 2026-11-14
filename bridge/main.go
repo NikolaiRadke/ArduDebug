@@ -330,6 +330,15 @@ func main() {
 	}
 	mark("Arduino found on %s", name)
 
+	// A running ardudebug-monitor hands the port over and shows the
+	// sketch's Serial output during the session. Closed last, after the
+	// serial port, so the monitor can open the port again right away.
+	monitor := claimMonitor(name)
+	if monitor != nil {
+		mark("Serial Monitor handed over %s", name)
+		defer monitor.Close()
+	}
+
 	// Opening causes a reset. The marker byte ends the bootloader and
 	// stops the stub before setup(); it acknowledges with 0x02.
 	killOldBridges()
@@ -388,6 +397,9 @@ func main() {
 		<-sigs
 		finish()
 		live.Close()
+		if monitor != nil {
+			monitor.Close()
+		}
 		os.Exit(0)
 	}()
 	mark("stub ready: %v", ready)
@@ -422,6 +434,9 @@ func main() {
 	input := newInputForwarder(traced{serLocked, "IN   "})
 	go input.run()
 	go readInput(os.Stdin, input)
+	if monitor != nil {
+		go readInput(monitor, input) // typed in the Serial Monitor
+	}
 	resume := func() { input.setRunning(true) }
 	readyCh := make(chan struct{}, 1)
 	onReady := func() {
@@ -469,7 +484,7 @@ func main() {
 	}
 	go func() { forwardFromGDB(serOut, conn, guard, resume, reset); done <- struct{}{} }()
 	go func() {
-		forwardFiltered(traced{conn, "<-AVR"}, live, traced{os.Stdout, "OUT  "}, stop, onReady)
+		forwardFiltered(traced{conn, "<-AVR"}, live, traced{teeWriter{os.Stdout, monitor}, "OUT  "}, stop, onReady)
 		done <- struct{}{}
 	}()
 	<-done

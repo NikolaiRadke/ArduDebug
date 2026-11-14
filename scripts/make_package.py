@@ -6,10 +6,11 @@
 #   1. Set VERSION.
 #   2. python3 scripts/make_package.py
 #   3. Create the GitHub release V<VERSION> and attach all files the script
-#      lists at the end (core, bridge and avr-gdb for all systems).
+#      lists at the end (core, bridge, monitor and avr-gdb for all systems).
 #   4. Only then commit and push package_ardudebug_index.json.
 #
-# Every release is complete: core, bridge and avr-gdb, all with the same version.
+# Every release is complete: core, bridge, monitor and avr-gdb, all with the
+# same version.
 # Older versions stay in the index, so users can go back in the boards manager.
 import hashlib, json, shutil, tarfile
 from pathlib import Path
@@ -88,17 +89,21 @@ def build_core():
 
 
 def build_tools():
-    """Archives of bridge and avr-gdb for all systems."""
-    bridge, gdb = [], []
+    """Archives of bridge, monitor and avr-gdb for all systems."""
+    bridge, monitor, gdb = [], [], []
     for host, tag, ext in HOSTS:
         b = pack(f"ardudebug-bridge-{VERSION}-{tag}.tar.bz2", VERSION, [
             (TOOLS / tag / f"ardudebug-bridge{ext}", f"ardudebug-bridge/ardudebug-bridge{ext}"),
             (DUMMY, "ardudebug-bridge/dummy.cfg")])
+        m = pack(f"ardudebug-monitor-{VERSION}-{tag}.tar.bz2", VERSION, [
+            (TOOLS / tag / f"ardudebug-monitor{ext}", f"ardudebug-monitor/ardudebug-monitor{ext}")])
         g = pack(f"ardudebug-gdb-{VERSION}-{tag}.tar.bz2", VERSION, [
             (TOOLS / tag / f"avr-gdb{ext}", f"ardudebug-gdb/bin/avr-gdb{ext}")])
         bridge.append(dict(host=host, **b))
+        monitor.append(dict(host=host, **m))
         gdb.append(dict(host=host, **g))
     return [{"name": "ardudebug-bridge", "version": VERSION, "systems": bridge},
+            {"name": "ardudebug-monitor", "version": VERSION, "systems": monitor},
             {"name": "ardudebug-gdb", "version": VERSION, "systems": gdb}]
 
 
@@ -107,16 +112,18 @@ def main():
     index = json.loads(INDEX.read_text())
     package = index["packages"][0]
 
-    print(f"Building bridge and avr-gdb {VERSION}")
+    print(f"Building bridge, monitor and avr-gdb {VERSION}")
     package["tools"] = [t for t in package["tools"] if t["version"] != VERSION] + build_tools()
 
     print(f"Building core {VERSION}")
     deps = find_deps(json.loads((SRC / "installed.json").read_text()))["toolsDependencies"]
     own_tools = [{"packager": "ardudebug", "name": n, "version": VERSION}
-                 for n in ("ardudebug-bridge", "ardudebug-gdb")]
+                 for n in ("ardudebug-bridge", "ardudebug-monitor", "ardudebug-gdb")]
     platform = {"name": NAME, "architecture": "avr", "version": VERSION,
                 "category": "Arduino", "boards": board_names(),
-                "toolsDependencies": deps + own_tools, **build_core()}
+                "toolsDependencies": deps + own_tools,
+                "monitorDependencies": [{"packager": "ardudebug", "name": "ardudebug-monitor"}],
+                **build_core()}
 
     # Replace an existing entry of the same version (rebuild), keep all others
     package["platforms"] = [p for p in package["platforms"] if p["version"] != VERSION]

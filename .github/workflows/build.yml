@@ -1,4 +1,4 @@
-# Builds the ArduDebug bridge for all systems.
+# Builds the ArduDebug bridge and monitor for all systems.
 # Start by hand: GitHub -> Actions -> Build -> Run workflow
 name: Build
 
@@ -21,6 +21,8 @@ jobs:
         run: |
           GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o out/linux64/ardudebug-bridge
           GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o out/windows64/ardudebug-bridge.exe
+          GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o out/linux64/ardudebug-monitor ./monitor
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o out/windows64/ardudebug-monitor.exe ./monitor
       - uses: actions/upload-artifact@v7
         with:
           name: bridge-linux-windows
@@ -43,6 +45,8 @@ jobs:
         run: |
           GOARCH=arm64 CC="clang -arch arm64"  go build -ldflags="-s -w" -o out/macos-arm64/ardudebug-bridge
           GOARCH=amd64 CC="clang -arch x86_64" go build -ldflags="-s -w" -o out/macos-x86_64/ardudebug-bridge
+          GOARCH=arm64 CC="clang -arch arm64"  go build -ldflags="-s -w" -o out/macos-arm64/ardudebug-monitor ./monitor
+          GOARCH=amd64 CC="clang -arch x86_64" go build -ldflags="-s -w" -o out/macos-x86_64/ardudebug-monitor ./monitor
       - uses: actions/upload-artifact@v7
         with:
           name: bridge-macos

@@ -96,7 +96,9 @@ recipe.preproc.macros="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {
 # ---------------------------------
 pluggable_discovery.required.0=builtin:serial-discovery
 pluggable_discovery.required.1=builtin:mdns-discovery
-pluggable_monitor.required.serial=builtin:serial-monitor
+# ArduDebug's own monitor: works like the built-in one, and during a debug
+# session it shows the sketch's Serial output that the bridge passes on
+pluggable_monitor.required.serial=ardudebug:ardudebug-monitor
 
 # AVR Uploader/Programmers tools
 # ------------------------------
