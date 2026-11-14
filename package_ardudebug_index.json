@@ -604,6 +604,129 @@
           "archiveFileName": "ardudebug-avr-1.8.8-4.tar.bz2",
           "checksum": "SHA-256:9247c4724d0da5118e5bef4075fb05bac78c9772b10cda4db46da5f69879a797",
           "size": "331428"
+        },
+        {
+          "name": "ArduDebug AVR Boards",
+          "architecture": "avr",
+          "version": "1.8.8-5",
+          "category": "Arduino",
+          "boards": [
+            {
+              "name": "Arduino Y\u00fan"
+            },
+            {
+              "name": "Arduino UNO"
+            },
+            {
+              "name": "Arduino UNO Mini"
+            },
+            {
+              "name": "Arduino Duemilanove or Diecimila"
+            },
+            {
+              "name": "Arduino Nano"
+            },
+            {
+              "name": "Arduino Mega or Mega 2560"
+            },
+            {
+              "name": "Arduino Mega ADK"
+            },
+            {
+              "name": "Arduino Leonardo"
+            },
+            {
+              "name": "Arduino Leonardo ETH"
+            },
+            {
+              "name": "Arduino Micro"
+            },
+            {
+              "name": "Arduino Esplora"
+            },
+            {
+              "name": "Arduino Mini"
+            },
+            {
+              "name": "Arduino Ethernet"
+            },
+            {
+              "name": "Arduino Fio"
+            },
+            {
+              "name": "Arduino BT"
+            },
+            {
+              "name": "LilyPad Arduino USB"
+            },
+            {
+              "name": "LilyPad Arduino"
+            },
+            {
+              "name": "Arduino Pro or Pro Mini"
+            },
+            {
+              "name": "Arduino NG or older"
+            },
+            {
+              "name": "Arduino Robot Control"
+            },
+            {
+              "name": "Arduino Robot Motor"
+            },
+            {
+              "name": "Adafruit Circuit Playground"
+            },
+            {
+              "name": "Arduino Y\u00fan Mini"
+            },
+            {
+              "name": "Arduino Industrial 101"
+            },
+            {
+              "name": "Linino One"
+            },
+            {
+              "name": "Arduino UNO WiFi"
+            }
+          ],
+          "toolsDependencies": [
+            {
+              "packager": "arduino",
+              "name": "arduinoOTA",
+              "version": "1.3.0"
+            },
+            {
+              "packager": "arduino",
+              "name": "avr-gcc",
+              "version": "7.3.0-atmel3.6.1-arduino7"
+            },
+            {
+              "packager": "arduino",
+              "name": "avrdude",
+              "version": "8.0.0-arduino1"
+            },
+            {
+              "packager": "ardudebug",
+              "name": "ardudebug-bridge",
+              "version": "1.8.8-5"
+            },
+            {
+              "packager": "ardudebug",
+              "name": "ardudebug-gdb",
+              "version": "1.8.8-5"
+            }
+          ],
+          "monitorDependencies": [
+            {
+              "packager": "ardudebug",
+              "name": "ardudebug-monitor"
+            }
+          ],
+          "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-avr-1.8.8-5.tar.bz2",
+          "archiveFileName": "ardudebug-avr-1.8.8-5.tar.bz2",
+          "checksum": "SHA-256:ad37a979c226e90494a6a478922196fe133553c6af1bee741b0072649fd253f2",
+          "size": "332115"
         }
       ],
       "tools": [
@@ -976,6 +1099,108 @@
               "host": "arm64-apple-darwin",
               "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-4/ardudebug-gdb-1.8.8-4-macos-arm64.tar.bz2",
               "archiveFileName": "ardudebug-gdb-1.8.8-4-macos-arm64.tar.bz2",
+              "checksum": "SHA-256:006dc0bcded5971b33ffdc8e2057c0de0bb9d32125c33bfca5914df6e4be719f",
+              "size": "3143097"
+            }
+          ]
+        },
+        {
+          "name": "ardudebug-bridge",
+          "version": "1.8.8-5",
+          "systems": [
+            {
+              "host": "x86_64-linux-gnu",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-bridge-1.8.8-5-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-1.8.8-5-linux64.tar.bz2",
+              "checksum": "SHA-256:b52d3bfd38321dd6ad1626c3ffa28fa8c4c00e9443237ec778478abbc4c6b5a0",
+              "size": "1147857"
+            },
+            {
+              "host": "x86_64-mingw32",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-bridge-1.8.8-5-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-1.8.8-5-windows64.tar.bz2",
+              "checksum": "SHA-256:c12177d34db1208062c61616c0da4fe5e7a7be2f78f44b52d921ffe9576ed32a",
+              "size": "1287633"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-bridge-1.8.8-5-macos-x86_64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-1.8.8-5-macos-x86_64.tar.bz2",
+              "checksum": "SHA-256:a0e4ee9f5070891632532b797e0c4768627bc3932acb7c778cdda3de00a83ef1",
+              "size": "1187492"
+            },
+            {
+              "host": "arm64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-bridge-1.8.8-5-macos-arm64.tar.bz2",
+              "archiveFileName": "ardudebug-bridge-1.8.8-5-macos-arm64.tar.bz2",
+              "checksum": "SHA-256:c1384505084e72c5b7d5ec0e8f6a66b54edcee561b5d5a9f920ae85432129dbd",
+              "size": "1096160"
+            }
+          ]
+        },
+        {
+          "name": "ardudebug-monitor",
+          "version": "1.8.8-5",
+          "systems": [
+            {
+              "host": "x86_64-linux-gnu",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-monitor-1.8.8-5-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-monitor-1.8.8-5-linux64.tar.bz2",
+              "checksum": "SHA-256:3e7fbf33cd8baeac80e438d6c92ffb0199328e5b3db352feca241193dfd15ae4",
+              "size": "1475357"
+            },
+            {
+              "host": "x86_64-mingw32",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-monitor-1.8.8-5-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-monitor-1.8.8-5-windows64.tar.bz2",
+              "checksum": "SHA-256:3f265adce64e1816b76ece2bf164a7003ba8a910a9b6625424a415441f5b4204",
+              "size": "1539463"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-monitor-1.8.8-5-macos-x86_64.tar.bz2",
+              "archiveFileName": "ardudebug-monitor-1.8.8-5-macos-x86_64.tar.bz2",
+              "checksum": "SHA-256:c02dce9aeeeb3775143268de5a986d9a490cf921e62c920e67abaad186b56186",
+              "size": "1521763"
+            },
+            {
+              "host": "arm64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-monitor-1.8.8-5-macos-arm64.tar.bz2",
+              "archiveFileName": "ardudebug-monitor-1.8.8-5-macos-arm64.tar.bz2",
+              "checksum": "SHA-256:066fc1768721761dd751240c8009185a0500c3a37969e457a9a71519fde43d69",
+              "size": "1395027"
+            }
+          ]
+        },
+        {
+          "name": "ardudebug-gdb",
+          "version": "1.8.8-5",
+          "systems": [
+            {
+              "host": "x86_64-linux-gnu",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-gdb-1.8.8-5-linux64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-1.8.8-5-linux64.tar.bz2",
+              "checksum": "SHA-256:cbe9765f52108c10f3afc1a181a5c8d37ee533148a3c4545c47f9e3f7e1716dc",
+              "size": "3886054"
+            },
+            {
+              "host": "x86_64-mingw32",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-gdb-1.8.8-5-windows64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-1.8.8-5-windows64.tar.bz2",
+              "checksum": "SHA-256:5c8ff58a32a9448e4e1b7b85f34f19bc7d62c2b82e04e9c74fe54bd1eeacd3f5",
+              "size": "3532411"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-gdb-1.8.8-5-macos-x86_64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-1.8.8-5-macos-x86_64.tar.bz2",
+              "checksum": "SHA-256:0e9b8d9e1097295f68005a758307ddbf756928b49d1d5632436d9f7195cf5b3a",
+              "size": "3423787"
+            },
+            {
+              "host": "arm64-apple-darwin",
+              "url": "https://github.com/NikolaiRadke/ArduDebug/releases/download/V1.8.8-5/ardudebug-gdb-1.8.8-5-macos-arm64.tar.bz2",
+              "archiveFileName": "ardudebug-gdb-1.8.8-5-macos-arm64.tar.bz2",
               "checksum": "SHA-256:006dc0bcded5971b33ffdc8e2057c0de0bb9d32125c33bfca5914df6e4be719f",
               "size": "3143097"
             }

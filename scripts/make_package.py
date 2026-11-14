@@ -15,7 +15,7 @@
 import hashlib, json, shutil, tarfile
 from pathlib import Path
 
-VERSION = "1.8.8-4"
+VERSION = "1.8.8-5"
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "core" / "avr"
@@ -118,7 +118,9 @@ def main():
     print(f"Building core {VERSION}")
     deps = find_deps(json.loads((SRC / "installed.json").read_text()))["toolsDependencies"]
     own_tools = [{"packager": "ardudebug", "name": n, "version": VERSION}
-                 for n in ("ardudebug-bridge", "ardudebug-monitor", "ardudebug-gdb")]
+                 for n in ("ardudebug-bridge", "ardudebug-gdb")]
+    # the monitor only as monitorDependencies, like Arduino's serial-monitor;
+    # also in toolsDependencies the IDE listed it twice when installing
     platform = {"name": NAME, "architecture": "avr", "version": VERSION,
                 "category": "Arduino", "boards": board_names(),
                 "toolsDependencies": deps + own_tools,
