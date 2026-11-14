@@ -628,14 +628,47 @@ void debug_usb_closed(void)
 	}
 }
 
+/* ArduDebug: line coding the host set while the program was stopped (baud
+   rate, stop bits, parity, data bits), like the core's _usbLineInfo */
+static uint8_t debug_line[7] = { 0x00, 0xE1, 0x00, 0x00, 0, 0, 8 };	/* 57600 8N1 */
+
+/* Bootloader key, as in USBCore.h (the core's CDC.cpp uses the same) */
+#define DEBUG_MAGIC_KEY			0x7777
+#define DEBUG_MAGIC_KEY_POS		0x0800
+#define DEBUG_NEW_LUFA_SIGNATURE	0xDCFB
+
+/* Wait for a flag on the control endpoint; 0 after about half a second, if
+   the host gave up */
+static uint8_t debug_ep0_wait(uint8_t mask)
+{
+	for (uint16_t i = 0; i < 50000; i++) {
+		if (UEINTX & mask)
+			return 1;
+		_delay_us(10);
+	}
+	return 0;
+}
+
+/* ArduDebug: closed at 1200 baud: the IDE wants to upload. Start the
+   bootloader, like the core's CDC.cpp does. */
+static void debug_bootloader(void)
+{
+	volatile uint16_t *key = (volatile uint16_t *)DEBUG_MAGIC_KEY_POS;
+	if (pgm_read_word(FLASHEND - 1) == DEBUG_NEW_LUFA_SIGNATURE)
+		key = (volatile uint16_t *)(RAMEND - 1);
+	*key = DEBUG_MAGIC_KEY;
+	wdt_enable(WDTO_120MS);
+}
+
 /* ArduDebug: while the program is stopped, interrupts are off and the core
-   cannot answer the host's requests on the control endpoint. The stub only
-   handles DTR (port opened or closed): closing the port must restart the
-   sketch. Other requests get a STALL; they only come when a stopped board
-   is opened again, which normally does not happen. */
+   cannot answer the host's requests on the control endpoint. The stub
+   answers them itself: the line coding (Windows sets and reads it when it
+   opens the port, e.g. when the bridge opens it again after the restart),
+   and DTR: closing the port restarts the sketch, closing at 1200 baud starts
+   the bootloader for an upload. Other requests get a STALL. */
 static void debug_usb_control(void)
 {
-	uint8_t type, req, val;
+	uint8_t type, req, val, len, i;
 
 	UENUM = 0;
 	if (!(UEINTX & _BV(RXSTPI)))
@@ -643,11 +676,35 @@ static void debug_usb_control(void)
 	type = UEDATX;
 	req  = UEDATX;
 	val  = UEDATX;
+	(void)UEDATX;	/* wValueH */
+	(void)UEDATX;	/* wIndex */
+	(void)UEDATX;
+	len  = UEDATX;	/* wLength, low byte */
 	UEINTX = ~_BV(RXSTPI);
-	if (type == 0x21 && req == 0x22) {		/* SET_CONTROL_LINE_STATE */
+	if (type == 0x21 && req == 0x20) {		/* SET_LINE_CODING */
+		if (!debug_ep0_wait(_BV(RXOUTI)))	/* data stage */
+			return;
+		for (i = 0; i < sizeof(debug_line) && i < len; i++)
+			debug_line[i] = UEDATX;
+		UEINTX = ~_BV(RXOUTI);
 		UEINTX = ~_BV(TXINI);			/* status stage */
-		if (!(val & 0x01))
-			debug_usb_closed();		/* port closed */
+	} else if (type == 0xA1 && req == 0x21) {	/* GET_LINE_CODING */
+		if (!debug_ep0_wait(_BV(TXINI)))
+			return;
+		for (i = 0; i < sizeof(debug_line) && i < len; i++)
+			UEDATX = debug_line[i];
+		UEINTX = ~_BV(TXINI);			/* data stage */
+		if (debug_ep0_wait(_BV(RXOUTI) | _BV(RXSTPI)))	/* status stage */
+			UEINTX = ~_BV(RXOUTI);
+	} else if (type == 0x21 && req == 0x22) {	/* SET_CONTROL_LINE_STATE */
+		UEINTX = ~_BV(TXINI);			/* status stage */
+		if (!(val & 0x01)) {			/* port closed */
+			if (debug_line[0] == 0xB0 && debug_line[1] == 0x04 &&
+			    debug_line[2] == 0 && debug_line[3] == 0)	/* 1200 baud */
+				debug_bootloader();
+			else
+				debug_usb_closed();
+		}
 	} else {
 		UECONX |= _BV(STALLRQ);			/* not supported now */
 	}
