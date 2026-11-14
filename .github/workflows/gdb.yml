@@ -1,5 +1,5 @@
-# Baut avr-gdb fuer alle Systeme (dauert pro System ca. 15 Minuten).
-# Start von Hand: GitHub -> Actions -> GDB -> Run workflow
+# Builds avr-gdb for all systems (takes about 15 minutes per system).
+# Start by hand: GitHub -> Actions -> GDB -> Run workflow
 name: GDB
 
 on:
@@ -59,13 +59,13 @@ jobs:
           mkdir -p out/${{ matrix.name }}
           cp inst/bin/avr-gdb out/${{ matrix.name }}/ && strip out/${{ matrix.name }}/avr-gdb
           file out/${{ matrix.name }}/avr-gdb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gdb-${{ matrix.name }}
           path: out/
 
   gdb-windows:
-    # Fertiger Build von Zak Kemble (eigenstaendig, nur System-DLLs)
+    # Prebuilt by Zak Kemble (standalone, system DLLs only)
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -75,7 +75,7 @@ jobs:
           gh release download --repo ZakKemble/avr-gcc-build --pattern 'avr-gcc-16.1.0-x64-windows.zip'
           unzip -q avr-gcc-*-x64-windows.zip
           mkdir -p out/windows64 && cp avr-gcc-*-x64-windows/bin/avr-gdb.exe out/windows64/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gdb-windows64
           path: out/

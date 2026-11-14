@@ -6,10 +6,10 @@ import (
 	"io"
 )
 
-// forwardFiltered reicht die Daten vom Stub an GDB weiter. Ausgabepakete
-// des Programms ($O<hex>#xx) werden abgefangen und als Text ins Terminal
-// der Bridge geschrieben, so wie der serielle Monitor sie zeigen wuerde.
-// Spaete Quittungen (0x02) des Stubs gehen nicht an GDB, sondern an onReady.
+// forwardFiltered passes the data from the stub on to GDB. Output packets
+// of the program ($O<hex>#xx) are intercepted and written as text to the
+// bridge's terminal, the way the serial monitor would show them.
+// Late acknowledgements (0x02) of the stub don't go to GDB but to onReady.
 func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop, onReady func()) {
 	r := bufio.NewReader(stub)
 	for {
@@ -24,10 +24,10 @@ func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop, onRea
 			continue
 		}
 		if b != '$' {
-			gdb.Write([]byte{b}) // z. B. '+' oder '-'
+			gdb.Write([]byte{b}) // e.g. '+' or '-'
 			continue
 		}
-		// Paket bis '#' lesen, dann die zwei Pruefsummen-Zeichen
+		// read the packet up to '#', then the two checksum characters
 		pkt := []byte{'$'}
 		for b != '#' {
 			if b, err = r.ReadByte(); err != nil {
@@ -43,7 +43,7 @@ func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop, onRea
 		}
 		payload := pkt[1 : len(pkt)-3]
 		if len(payload) > 0 && (payload[0] == 'T' || payload[0] == 'S') {
-			onStop() // Halt-Meldung des Stubs
+			onStop() // stop reply of the stub
 		}
 		if text, ok := outputText(payload); ok {
 			out.Write(text)
@@ -53,7 +53,7 @@ func forwardFiltered(gdb io.Writer, stub io.Reader, out io.Writer, onStop, onRea
 	}
 }
 
-// outputText erkennt "O" + Hex-Text. "OK" ist kein Ausgabepaket.
+// outputText recognizes "O" + hex text. "OK" is not an output packet.
 func outputText(p []byte) ([]byte, bool) {
 	if len(p) < 3 || p[0] != 'O' || (len(p)-1)%2 != 0 {
 		return nil, false

@@ -5,11 +5,11 @@ import (
 	"sync"
 )
 
-// Eingaben fuer den Sketch: Was im Terminal "gdb-server" getippt wird,
-// schreibt Cortex-Debug in die Standardeingabe der Bridge. Die Bridge
-// schickt jedes Zeichen als 0x01 + Zeichen an den Stub, aber nur, solange
-// das Programm laeuft (nach "c"). GDB selbst schickt dann nur 0x03, damit
-// ist 0x01 eindeutig. Waehrend das Programm steht, wird gesammelt.
+// Input for the sketch: what is typed in the "gdb-server" terminal,
+// Cortex-Debug writes to the bridge's standard input. The bridge
+// sends each character as 0x01 + character to the stub, but only while
+// the program is running (after "c"). GDB itself then sends only 0x03, so
+// 0x01 is unambiguous. While the program is stopped, input is collected.
 const inputMark = 0x01
 
 type inputForwarder struct {
@@ -27,7 +27,7 @@ func newInputForwarder(ser io.Writer) *inputForwarder {
 	return f
 }
 
-// setRunning: true nach "c" von GDB, false nach einer Halt-Meldung.
+// setRunning: true after "c" from GDB, false after a stop reply.
 func (f *inputForwarder) setRunning(r bool) {
 	f.mu.Lock()
 	f.running = r
@@ -35,8 +35,8 @@ func (f *inputForwarder) setRunning(r bool) {
 	f.cond.Broadcast()
 }
 
-// add nimmt getippte Zeichen an. Zeilenenden werden zu "\n"
-// vereinheitlicht (Windows schickt "\r\n").
+// add takes typed characters. Line endings are normalized to "\n"
+// (Windows sends "\r\n").
 func (f *inputForwarder) add(data []byte) {
 	f.mu.Lock()
 	for _, b := range data {
@@ -46,7 +46,7 @@ func (f *inputForwarder) add(data []byte) {
 			f.lastCR = true
 			continue
 		case b == '\n' && f.lastCR:
-			// zweite Haelfte von "\r\n"
+			// second half of "\r\n"
 		default:
 			f.queue = append(f.queue, b)
 		}
@@ -56,7 +56,7 @@ func (f *inputForwarder) add(data []byte) {
 	f.cond.Broadcast()
 }
 
-// run schickt gesammelte Zeichen, sobald das Programm laeuft.
+// run sends collected characters as soon as the program is running.
 func (f *inputForwarder) run() {
 	for {
 		f.mu.Lock()
@@ -77,7 +77,7 @@ func (f *inputForwarder) run() {
 	}
 }
 
-// readInput liest die Standardeingabe, bis sie endet.
+// readInput reads the standard input until it ends.
 func readInput(r io.Reader, f *inputForwarder) {
 	buf := make([]byte, 256)
 	for {

@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// Pausieren: Der Stub haelt nach einem Pause-Signal (0x03) erst vor dem
-// naechsten loop()-Durchlauf an. Haengt das Programm woanders fest, kommt
-// keine Halt-Meldung. Dann schickt die Bridge nach pauseTimeout ein zweites
-// 0x03, und der Stub haelt sofort an.
+// Pausing: after a pause signal (0x03) the stub only stops before the
+// next pass of loop(). If the program is stuck somewhere else, no
+// stop reply comes. Then the bridge sends a second 0x03 after pauseTimeout,
+// and the stub stops right away.
 var pauseTimeout = time.Second
 
 type pauseGuard struct {
@@ -18,7 +18,7 @@ type pauseGuard struct {
 	ser   io.Writer
 }
 
-// interrupted: GDB hat Pause gedrueckt.
+// interrupted: GDB pressed pause.
 func (g *pauseGuard) interrupted() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -30,7 +30,7 @@ func (g *pauseGuard) interrupted() {
 	})
 }
 
-// stopped: Der Stub hat eine Halt-Meldung geschickt.
+// stopped: the stub sent a stop reply.
 func (g *pauseGuard) stopped() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -40,12 +40,12 @@ func (g *pauseGuard) stopped() {
 	}
 }
 
-// forwardFromGDB reicht alles von GDB an den Stub weiter und erkennt dabei
-// Pause-Signale. Ein 0x03 zaehlt nur ausserhalb von Paketen ($...#xx).
-// onContinue wird aufgerufen, nachdem ein "c"-Paket (Fortsetzen) beim Stub ist.
-// "monitor reset" (qRcmd,7265736574) erreicht den Stub nicht: Die Bridge
-// erledigt den Reset selbst in onReset. Solange onReset laeuft, wird nichts
-// weitergereicht; GDBs naechste Pakete warten, bis das Board wieder zuhoert.
+// forwardFromGDB passes everything from GDB on to the stub and detects
+// pause signals. A 0x03 only counts outside of packets ($...#xx).
+// onContinue is called after a "c" packet (continue) has reached the stub.
+// "monitor reset" (qRcmd,7265736574) doesn't reach the stub: the bridge
+// does the reset itself in onReset. While onReset runs, nothing is
+// passed on; GDB's next packets wait until the board listens again.
 func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, onReset func()) {
 	buf := make([]byte, 512)
 	inPacket, escape, checksum := false, false, 0
@@ -55,7 +55,7 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, on
 	for {
 		n, err := gdb.Read(buf)
 		resumed, reset := false, false
-		// Ein angefangenes Paket aus dem letzten Lesen kommt wieder nach vorn.
+		// A packet started in the last read is moved back to the front.
 		out = append(out[:0], carry...)
 		carry = carry[:0]
 		pktStart = 0
@@ -65,7 +65,7 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, on
 			case checksum > 0:
 				checksum--
 				if checksum == 0 && dropPkt {
-					out, dropPkt = out[:pktStart], false // Reset-Paket nicht weitergeben
+					out, dropPkt = out[:pktStart], false // don't pass on the reset packet
 				}
 			case inPacket && escape:
 				escape = false
@@ -88,8 +88,8 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, on
 				g.interrupted()
 			}
 		}
-		// Ein noch unvollstaendiges Paket zurueckhalten, bis es komplett ist,
-		// damit ein Reset-Paket nie halb beim Stub ankommt.
+		// Hold back an incomplete packet until it is complete,
+		// so that a reset packet never reaches the stub half done.
 		if (inPacket || checksum > 0) && err == nil {
 			carry = append(carry, out[pktStart:]...)
 			out = out[:pktStart]
@@ -111,11 +111,11 @@ func forwardFromGDB(stub io.Writer, gdb io.Reader, g *pauseGuard, onContinue, on
 	}
 }
 
-// resetPacket ist GDBs "monitor reset" (Text "reset" in Hex).
+// resetPacket is GDB's "monitor reset" (text "reset" in hex).
 const resetPacket = "qRcmd,7265736574"
 
-// appendShort merkt sich nur den Anfang eines Pakets; mehr braucht die
-// Erkennung nicht.
+// appendShort only keeps the start of a packet; detection doesn't
+// need more.
 func appendShort(p []byte, b byte) []byte {
 	if len(p) < 32 {
 		p = append(p, b)
@@ -123,8 +123,8 @@ func appendShort(p []byte, b byte) []byte {
 	return p
 }
 
-// lockedWriter verhindert, dass zwei Goroutinen gleichzeitig auf den
-// seriellen Port schreiben.
+// lockedWriter prevents two goroutines from writing to the
+// serial port at the same time.
 type lockedWriter struct {
 	mu sync.Mutex
 	w  io.Writer

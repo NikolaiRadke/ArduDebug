@@ -1,6 +1,6 @@
-// ardudebug-bridge: Ersatz für OpenOCD im ArduDebug-Board-Paket.
-// Die Arduino IDE (Cortex-Debug) startet das Programm wie OpenOCD.
-// Es sucht den Arduino per USB-Kennung und verbindet GDB (TCP) mit dem Stub (seriell).
+// ardudebug-bridge: replacement for OpenOCD in the ArduDebug board package.
+// The Arduino IDE (Cortex-Debug) starts the program like OpenOCD.
+// It finds the Arduino by its USB ID and connects GDB (TCP) to the stub (serial).
 package main
 
 import (
@@ -21,13 +21,13 @@ import (
 	"go.bug.st/serial/enumerator"
 )
 
-// USB-Hersteller-Kennungen: Arduino, Arduino.org, CH340-Klone, FTDI,
-// CP210x-Klone, SparkFun (LilyPad USB), Adafruit (Circuit Playground)
+// USB vendor IDs: Arduino, Arduino.org, CH340 clones, FTDI,
+// CP210x clones, SparkFun (LilyPad USB), Adafruit (Circuit Playground)
 var knownVIDs = []string{"2341", "2A03", "1A86", "0403", "10C4", "1B4F", "239A"}
 
-// USB-Kennungen (VID:PID) der Boards mit eigenem USB (ATmega32U4), wie
-// der Sketch sie meldet. Sie starten fuer den Debugger ueber den Stub neu,
-// nicht ueber DTR. Aus der boards.txt von Arduino AVR Boards 1.8.8.
+// USB IDs (VID:PID) of the boards with native USB (ATmega32U4), as
+// the sketch reports them. For the debugger they restart via the stub,
+// not via DTR. From boards.txt of Arduino AVR Boards 1.8.8.
 var nativeUSBIDs = []string{
 	"2341:8036", "2A03:8036", // Leonardo
 	"2A03:8040",              // Leonardo ETH
@@ -43,7 +43,7 @@ var nativeUSBIDs = []string{
 	"239A:8011", // Circuit Playground
 }
 
-// gdbPort liest "gdb_port N" aus den Parametern, die Cortex-Debug übergibt.
+// gdbPort reads "gdb_port N" from the arguments Cortex-Debug passes.
 func gdbPort(args []string) int {
 	m := regexp.MustCompile(`gdb_port\s+(\d+)`).FindStringSubmatch(strings.Join(args, " "))
 	if m != nil {
@@ -54,8 +54,8 @@ func gdbPort(args []string) int {
 	return 50000
 }
 
-// idePort liest "ardudebug_port PORT" aus den Parametern: der Port, den
-// der Nutzer in der IDE gewaehlt hat (leer, falls nicht uebergeben).
+// idePort reads "ardudebug_port PORT" from the arguments: the port
+// the user selected in the IDE (empty if not passed).
 func idePort(args []string) string {
 	m := regexp.MustCompile(`ardudebug_port\s+(\S+)`).FindStringSubmatch(strings.Join(args, " "))
 	if m != nil && !strings.Contains(m[1], "{") && !strings.HasPrefix(m[1], "ardudebug_") {
@@ -64,12 +64,12 @@ func idePort(args []string) string {
 	return ""
 }
 
-// baudRate der Verbindung zum Stub: 115200, bei Boards unter 16 MHz 57600
-// (wie im Stub, siehe GDB_USART_BAUDRATE).
+// baudRate of the connection to the stub: 115200, 57600 for boards below 16 MHz
+// (as in the stub, see GDB_USART_BAUDRATE).
 var baudRate = 115200
 
-// ideFCPU liest "ardudebug_fcpu F" (build.f_cpu, etwa 16000000L); 0, falls
-// nicht uebergeben.
+// ideFCPU reads "ardudebug_fcpu F" (build.f_cpu, e.g. 16000000L); 0 if
+// not passed.
 func ideFCPU(args []string) int {
 	m := regexp.MustCompile(`ardudebug_fcpu\s+(\d+)`).FindStringSubmatch(strings.Join(args, " "))
 	if m == nil {
@@ -79,7 +79,7 @@ func ideFCPU(args []string) int {
 	return f
 }
 
-// ideMCU liest "ardudebug_mcu MCU" (build.mcu des gewaehlten Boards).
+// ideMCU reads "ardudebug_mcu MCU" (build.mcu of the selected board).
 func ideMCU(args []string) string {
 	m := regexp.MustCompile(`ardudebug_mcu\s+(\S+)`).FindStringSubmatch(strings.Join(args, " "))
 	if m != nil && !strings.Contains(m[1], "{") {
@@ -88,9 +88,9 @@ func ideMCU(args []string) string {
 	return ""
 }
 
-// drain verwirft, was noch vom Board kommt: Ein Leonardo kann Bytes aus
-// einer frueheren Sitzung in seinem USB-Puffer haben (etwa eine alte
-// Quittung), die erst nach dem Oeffnen ankommen.
+// drain discards what is still coming from the board: a Leonardo can have
+// bytes from an earlier session in its USB buffer (e.g. an old
+// acknowledgement) that only arrive after opening.
 func drain(ser serial.Port) {
 	ser.SetReadTimeout(20 * time.Millisecond)
 	defer ser.SetReadTimeout(serial.NoTimeout)
@@ -102,16 +102,16 @@ func drain(ser serial.Port) {
 	}
 }
 
-// Welche Boards findBoard in Frage kommen.
+// Which boards findBoard considers.
 const (
 	anyBoard    = iota
-	nativeUSB   // nur mit eigenem USB (Leonardo, Micro)
-	usbSerialIC // nur mit USB-Seriell-Chip (Uno, Nano)
+	nativeUSB   // only with native USB (Leonardo, Micro)
+	usbSerialIC // only with a USB serial chip (Uno, Nano)
 )
 
-// findBoard sucht das Board: bevorzugt den Port prefer (aus der IDE),
-// sonst den ersten seriellen USB-Port mit bekannter Hersteller-Kennung
-// und passender Art (kind). native meldet, ob das Board eigenes USB hat.
+// findBoard looks for the board: preferably the port prefer (from the IDE),
+// otherwise the first serial USB port with a known vendor ID
+// and the matching kind. native reports whether the board has native USB.
 func findBoard(prefer string, kind int) (name string, native bool, err error) {
 	ports, err := enumerator.GetDetailedPortsList()
 	if err != nil {
@@ -160,8 +160,8 @@ func fail(msg string, err error) {
 	os.Exit(1)
 }
 
-// openPort öffnet den seriellen Port. Ist er belegt, wird es portRetry lang
-// erneut versucht (nur Windows, nach dem Beenden einer alten Bridge).
+// openPort opens the serial port. If it is busy, it retries for portRetry
+// (Windows only, after ending an old bridge).
 func openPort(name string) (serial.Port, error) {
 	deadline := time.Now().Add(portRetry)
 	for {
@@ -174,11 +174,11 @@ func openPort(name string) (serial.Port, error) {
 	}
 }
 
-// announce schickt nach dem Reset alle 10 ms das Kennbyte 0x02 ("Debugger
-// kommt"). Der Stub haelt beim ersten davon direkt nach debug_init() an und
-// wartet auf GDB; der Sketch beginnt also erst mit dem Debugger. Unbekannte
-// Zeichen lassen ausserdem den Bootloader sofort den Sketch starten.
-// Die zurueckgegebene Funktion beendet das Senden und wartet darauf.
+// announce sends the marker byte 0x02 ("debugger is coming") every 10 ms
+// after the reset. The stub stops at the first one right after debug_init()
+// and waits for GDB, so the sketch only starts with the debugger. Unknown
+// characters also make the bootloader start the sketch right away.
+// The returned function stops sending and waits for it.
 func announce(ser io.Writer) func() {
 	stop := make(chan struct{})
 	done := make(chan struct{})
@@ -195,8 +195,8 @@ func announce(ser io.Writer) func() {
 			}
 		}
 	}()
-	// Nicht ewig warten: Liest das Board nicht mit (Leonardo ohne Debug-
-	// Build), blockiert das Schreiben irgendwann.
+	// Don't wait forever: if the board doesn't read along (Leonardo without a
+	// debug build), writing blocks at some point.
 	return func() {
 		close(stop)
 		select {
@@ -206,20 +206,20 @@ func announce(ser io.Writer) func() {
 	}
 }
 
-// readyMark ist die Quittung des Stubs auf das Kennbyte: Er steht jetzt vor
-// setup() und wartet auf GDB.
+// readyMark is the stub's acknowledgement of the marker byte: it is now
+// before setup() and waits for GDB.
 const readyMark = 0x02
 
-// restartMark bittet den Stub eines Leonardo, neu zu starten.
+// restartMark asks the stub of a Leonardo to restart.
 const restartMark = 0x04
 
-// readyTimeout: So lange wartet die Bridge hoechstens auf die Quittung.
+// readyTimeout: the longest the bridge waits for the acknowledgement.
 var readyTimeout = 3 * time.Second
 
-// waitReady liest den Port, bis die Quittung kommt (true) oder readyTimeout
-// verstrichen ist (false). Andere Zeichen, etwa vom Bootloader, verfallen.
-// lost meldet, dass der Port verschwunden ist: Ein Leonardo startet neu,
-// wenn sich der Debugger meldet, und meldet sich am USB neu an.
+// waitReady reads the port until the acknowledgement comes (true) or readyTimeout
+// has passed (false). Other characters, e.g. from the bootloader, are dropped.
+// lost reports that the port has disappeared: a Leonardo restarts
+// when the debugger announces itself, and comes back on USB.
 func waitReady(ser serial.Port, name string) (ready, lost bool) {
 	ser.SetReadTimeout(50 * time.Millisecond)
 	defer ser.SetReadTimeout(serial.NoTimeout)
@@ -246,7 +246,7 @@ func waitReady(ser serial.Port, name string) (ready, lost bool) {
 	return false, false
 }
 
-// portPresent: Ist der Port noch im System?
+// portPresent: is the port still in the system?
 func portPresent(name string) bool {
 	ports, err := serial.GetPortsList()
 	if err != nil {
@@ -260,12 +260,12 @@ func portPresent(name string) bool {
 	return false
 }
 
-// reconnectTimeout: So lange darf ein Leonardo für den Neustart brauchen.
+// reconnectTimeout: how long a Leonardo may take for the restart.
 var reconnectTimeout = 10 * time.Second
 
-// reopen wartet, bis sich das Board nach einem Neustart wieder am USB
-// meldet, und öffnet den Port erneut. Andere angeschlossene Arduinos bleiben
-// unberuehrt: bevorzugt der alte Name, sonst ein Board mit eigenem USB.
+// reopen waits until the board is back on USB after a restart
+// and opens the port again. Other connected Arduinos stay
+// untouched: preferably the old name, otherwise a board with native USB.
 func reopen(prefer string) (serial.Port, string, error) {
 	deadline := time.Now().Add(reconnectTimeout)
 	var lastErr error
@@ -286,7 +286,7 @@ func reopen(prefer string) (serial.Port, string, error) {
 	return nil, "", lastErr
 }
 
-// openFailed erklärt, warum der serielle Port nicht aufging, und beendet.
+// openFailed explains why the serial port didn't open, and exits.
 func openFailed(name string, err error) {
 	var pe *serial.PortError
 	if errors.As(err, &pe) {
@@ -314,9 +314,9 @@ func main() {
 		baudRate = 57600
 	}
 	mark("IDE port: %q, MCU: %q, baud %d", idePort(os.Args[1:]), mcu, baudRate)
-	// Ein Leonardo-Build sucht nur Boards mit eigenem USB, ein Uno-Build nur
-	// solche ohne, damit ein zusaetzlich angeschlossenes Board unberuehrt
-	// bleibt. Ohne Angabe (alte platform.txt) wie bisher das erste.
+	// A Leonardo build looks only for boards with native USB, an Uno build only
+	// for those without, so that an additionally connected board stays
+	// untouched. Without this (old platform.txt) the first one, as before.
 	kind := anyBoard
 	switch {
 	case mcu == "atmega32u4":
@@ -330,8 +330,8 @@ func main() {
 	}
 	mark("Arduino found on %s", name)
 
-	// Öffnen löst einen Reset aus. Das Kennbyte beendet den Bootloader und
-	// haelt den Stub vor setup() an; er quittiert mit 0x02.
+	// Opening causes a reset. The marker byte ends the bootloader and
+	// stops the stub before setup(); it acknowledges with 0x02.
 	killOldBridges()
 	ser, err := openPort(name)
 	if err != nil {
@@ -344,9 +344,9 @@ func main() {
 	stopAnnounce := announce(ser)
 	ready, lost := waitReady(ser, name)
 	stopAnnounce()
-	// Leonardo: startet für den Debugger neu und meldet sich neu an. Mehr
-	// als ein Neustart hintereinander deutet auf einen Fehler; nach dem
-	// dritten gibt die Bridge auf.
+	// Leonardo: restarts for the debugger and comes back on USB. More
+	// than one restart in a row points to an error; after the
+	// third the bridge gives up.
 	for tries := 0; lost && tries < 3; tries++ {
 		ser.Close()
 		mark("port lost, board restarts")
@@ -363,10 +363,10 @@ func main() {
 	live := newLivePort(ser)
 	defer live.Close()
 
-	// Ende der Sitzung (GDB trennt oder die IDE beendet die Bridge): Der
-	// Sketch soll ohne Debugger frisch weiterlaufen. Ein Uno wird dafuer
-	// ueber DTR zurueckgesetzt; ein Leonardo startet selbst neu, sobald der
-	// Port geschlossen ist.
+	// End of the session (GDB disconnects or the IDE ends the bridge): the
+	// sketch should run on fresh without the debugger. An Uno is reset
+	// via DTR for that; a Leonardo restarts by itself as soon as the
+	// port is closed.
 	var finishOnce sync.Once
 	finish := func() {
 		finishOnce.Do(func() {
@@ -401,7 +401,7 @@ func main() {
 		fail("TCP port", err)
 	}
 
-	// Meldungen im OpenOCD-Stil, auf die Cortex-Debug wartet.
+	// OpenOCD-style messages that Cortex-Debug waits for.
 	fmt.Printf("Info : ArduDebug: Arduino on %s\n", name)
 	fmt.Printf("Info : avr.cpu: hardware has 4 breakpoints, 0 watchpoints\n")
 	fmt.Printf("Info : Listening on port %d for gdb connections\n", port)
@@ -414,9 +414,9 @@ func main() {
 	defer conn.Close()
 	mark("GDB connected")
 
-	// In beide Richtungen durchreichen; endet, sobald eine Seite schließt.
+	// Pass through in both directions; ends as soon as one side closes.
 	done := make(chan struct{}, 2)
-	serLocked := &lockedWriter{w: live} // GDB und Eingaben schreiben beide hierhin
+	serLocked := &lockedWriter{w: live} // GDB and input both write here
 	serOut := traced{serLocked, "GDB->"}
 	guard := &pauseGuard{ser: serOut}
 	input := newInputForwarder(traced{serLocked, "IN   "})
@@ -431,17 +431,17 @@ func main() {
 		}
 	}
 	stop := func() { guard.stopped(); input.setRunning(false) }
-	// "monitor reset" (Neu starten): Die Bridge antwortet GDB selbst mit OK
-	// und setzt das Board ueber DTR/RTS zurueck, wie beim Hochladen. Ein
-	// Watchdog-Reset im Stub wuerde den alten Nano-Bootloader in eine
-	// Reset-Schleife schicken. Danach wieder das Kennbyte, damit der Stub vor
-	// setup() anhaelt; GDB wartet so lange.
+	// "monitor reset" (Restart): the bridge answers GDB with OK itself
+	// and resets the board via DTR/RTS, as when uploading. A
+	// watchdog reset in the stub would send the old Nano bootloader into a
+	// reset loop. Then the marker byte again, so that the stub stops before
+	// setup(); GDB waits until then.
 	reset := func() {
 		input.setRunning(false)
 		traced{conn, "<-BRG"}.Write([]byte("+$OK#9a"))
 		if native {
-			// Leonardo: Der Stub startet ueber den Watchdog neu (0x04),
-			// das Board meldet sich am USB neu an.
+			// Leonardo: the stub restarts via the watchdog (0x04),
+			// the board comes back on USB.
 			newName, err := live.restart(name, func(p serial.Port) {
 				traced{p, "RST  "}.Write([]byte{restartMark})
 			})
@@ -456,7 +456,7 @@ func main() {
 			p.SetDTR(true)
 			p.SetRTS(true)
 		}
-		select { // alte Quittung verwerfen
+		select { // discard an old acknowledgement
 		case <-readyCh:
 		default:
 		}

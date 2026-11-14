@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-// Unter Windows kann eine übrig gebliebene Bridge den COM-Port festhalten.
-// Nach dem Beenden gibt Windows den Port nicht immer sofort frei.
+// On Windows a leftover bridge can hold on to the COM port.
+// After it ends, Windows doesn't always release the port right away.
 const portRetry = 2 * time.Second
 
-// killOldBridges beendet andere laufende ardudebug-bridge.exe (nicht sich selbst).
+// killOldBridges ends other running ardudebug-bridge.exe (not itself).
 func killOldBridges() {
 	cmd := exec.Command("taskkill", "/F", "/IM", "ardudebug-bridge.exe",
 		"/FI", fmt.Sprintf("PID ne %d", os.Getpid()))

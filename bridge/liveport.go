@@ -7,9 +7,9 @@ import (
 	"go.bug.st/serial"
 )
 
-// livePort ist der serielle Port zum Board, austauschbar: Ein Leonardo
-// meldet sich bei einem Neustart am USB ab und wieder an. Lesen und
-// Schreiben warten waehrenddessen und machen dann mit dem neuen Port weiter.
+// livePort is the serial port to the board, replaceable: a Leonardo
+// drops off USB on a restart and comes back. Reads and
+// writes wait meanwhile and then carry on with the new port.
 type livePort struct {
 	mu       sync.Mutex
 	cond     *sync.Cond
@@ -23,7 +23,7 @@ func newLivePort(p serial.Port) *livePort {
 	return l
 }
 
-// current liefert den Port, notfalls erst nach einem laufenden Austausch.
+// current returns the port, if need be only after a running replacement.
 func (l *livePort) current() serial.Port {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -33,7 +33,7 @@ func (l *livePort) current() serial.Port {
 	return l.p
 }
 
-// retry meldet nach einem Fehler auf p, ob es inzwischen einen neuen Port gibt.
+// retry reports after an error on p whether there is a new port by now.
 func (l *livePort) retry(p serial.Port) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -67,8 +67,8 @@ func (l *livePort) Close() error {
 	return l.current().Close()
 }
 
-// restart schickt mit send den Neustart-Befehl, wartet, bis der Port
-// verschwindet, und oeffnet ihn nach der Neuanmeldung wieder.
+// restart sends the restart command with send, waits until the port
+// disappears, and opens it again after the board is back on USB.
 func (l *livePort) restart(name string, send func(serial.Port)) (string, error) {
 	l.mu.Lock()
 	old := l.p

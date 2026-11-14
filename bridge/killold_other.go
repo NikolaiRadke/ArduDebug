@@ -4,7 +4,7 @@ package main
 
 import "time"
 
-// Unter Linux und macOS gibt es nichts zu beenden und nicht zu warten.
+// On Linux and macOS there is nothing to kill and nothing to wait for.
 const portRetry = time.Duration(0)
 
 func killOldBridges() {}
