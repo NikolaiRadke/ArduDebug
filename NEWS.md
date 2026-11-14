@@ -2,6 +2,8 @@
 
 ## 2026
 
+* **14.11.2026** Release **V1.8.8-5**: Leonardo on Windows works again, uploads work while the program is stopped.  
+* **14.11.2026** Release **V1.8.8-4**: own Serial Monitor: Serial Monitor and Serial Plotter keep working while you debug. Debug builds are readable in the Serial Monitor without a debug session. Steps no longer stop in helper functions of the compiler.  
 * **07.11.2026** Release **V1.8.8-3**: Pause stops at the sketch line the program is working on.  
 * **07.11.2026** Release **V1.8.8-2**: Pause stops at the start of loop() instead of main()
 * **07.11.2026** Release **V1.8.8-1**: Debugger stays in sketch and skips main.cpp.

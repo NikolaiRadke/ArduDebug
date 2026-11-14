@@ -4,7 +4,7 @@
 Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable. Also available as an extension for **VS Code**, see [ArduDebug for VS Code](#ardudebug-for-vs-code). Based on Arduino AVR Boards V1.8.8.  
 
 🆕 What's new?  
-* **07.11.2026** Release **V1.8.8-3**: Pause stops at the sketch line the program is working on.  
+* **14.11.2026** Release **V1.8.8-5**: Serial Monitor and Serial Plotter keep working while you debug, and debug builds are readable in the Serial Monitor without a debug session.  
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/ArduDebug/blob/main/NEWS.md).
 
 ## Supported boards
@@ -36,6 +36,7 @@ If you can test one of these, please open an [issue](https://github.com/NikolaiR
 - **avr8-stub** (by Jan Dolinay) runs on the board and speaks the GDB protocol over the serial line, on the Leonardo and other ATmega32U4 boards directly over USB.
 - The stub is built into the core and only included when *Sketch → Optimize for Debugging* is enabled. Your sketch needs no debug code.
 - A small **bridge** program, started by the IDE, finds the board automatically and connects GDB to it.
+- ArduDebug brings its own **Serial Monitor**. Without a debug session it works like the IDE's own one; during a debug session it shows the output of your sketch that the bridge passes on.
   
 ![Screenshot](http://www.nikolairadke.de/aiduino/ardudebug_screenshot.png)
 
@@ -110,7 +111,7 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 
 ### Troubleshooting
 
-- **"Port … busy" or "Access denied":** another program is using the port. Close the Serial Monitor. On Windows, also check the Task Manager (*Details*) for a leftover `ardudebug-bridge.exe` and end it.
+- **"Port … busy" or "Access denied":** another program is using the port, e.g. a terminal program. On Windows, also check the Task Manager (*Details*) for a leftover `ardudebug-bridge.exe` and end it.
 - **Upload fails during debugging:** stop the debug session first, then upload.
 - **Breakpoints are hollow grey circles:** either the debug session isn't running properly (see above), or breakpoints are deactivated – click *Activate Breakpoints* in the Breakpoints view.
 - **Linux: no access to the port:** add your user to the `dialout` group (`sudo usermod -aG dialout $USER`) and log in again.
@@ -139,7 +140,8 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 | Folder | Content |
 |---|---|
 | `core/avr` | The board core, based on Arduino AVR Boards 1.8.8, with avr8-stub |
-| `bridge` | Source of the bridge program (Go) |
+| `bridge` | Source of the bridge and the Serial Monitor (Go) |
+| `tests/sim` | Simulator test of the stub (simavr), runs on every push |
 | `scripts` | Build script for the Boards Manager package |
 
 ## License
