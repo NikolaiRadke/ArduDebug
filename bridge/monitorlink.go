@@ -94,19 +94,22 @@ func (m *monitorSet) setInput(f func([]byte)) {
 	m.mu.Unlock()
 }
 
-// Write sends output to all monitors. A monitor that went away doesn't stop
-// the output.
-func (m *monitorSet) Write(p []byte) (int, error) {
+// send gives output to all monitors. A monitor that went away doesn't stop
+// the output. Returns false if no monitor took it.
+func (m *monitorSet) send(p []byte) bool {
 	m.mu.Lock()
 	conns := append([]net.Conn(nil), m.conns...)
 	m.mu.Unlock()
+	sent := false
 	for _, c := range conns {
 		c.SetWriteDeadline(time.Now().Add(time.Second))
 		if _, err := c.Write(p); err != nil {
 			m.remove(c)
+		} else {
+			sent = true
 		}
 	}
-	return len(p), nil
+	return sent
 }
 
 // listen lets a monitor that the IDE opens during the session attach itself
@@ -158,12 +161,15 @@ func (m *monitorSet) closeAll() {
 	m.conns = nil
 }
 
-// teeWriter writes to the bridge's terminal and to the monitors.
+// teeWriter writes the sketch's output to the Serial Monitor, or to the
+// bridge's terminal (gdb-server) while no monitor is connected.
 type teeWriter struct {
 	out *os.File
 }
 
 func (t teeWriter) Write(p []byte) (int, error) {
-	monitors.Write(p)
+	if monitors.send(p) {
+		return len(p), nil
+	}
 	return t.out.Write(p)
 }

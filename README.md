@@ -45,7 +45,7 @@ If you can test one of these, please open an [issue](https://github.com/NikolaiR
 
 ## Serial while debugging
 
-During a debug session the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the Serial Monitor keeps showing the output, and what you type there arrives in `Serial.read()`. The output also appears in the **gdb-server** tab at the bottom of the IDE, and you can type there too (followed by Enter). In VS Code the output appears in the **Debug Console**; input to `Serial.read()` is not available there.
+During a debug session the serial port belongs to the debugger. Your sketch can still use `Serial` as usual: the Serial Monitor keeps showing the output, and what you type there arrives in `Serial.read()`. While the Serial Monitor is closed, the output appears in the **gdb-server** tab at the bottom of the IDE instead, and you can type there too (followed by Enter). In VS Code the output appears in the **Debug Console**; input to `Serial.read()` is not available there.
 
 - Each line you type ends with a newline (`\n`).
 - Input typed while the program is stopped is delivered as soon as it continues.
