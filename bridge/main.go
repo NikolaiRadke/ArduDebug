@@ -162,14 +162,25 @@ func fail(msg string, err error) {
 	os.Exit(1)
 }
 
-// openPort opens the serial port. If it is busy, it retries for portRetry
-// (Windows only, after ending an old bridge).
+// openPort opens the serial port. If it is busy, an ardudebug-monitor may
+// have it: it hands it over. Otherwise it retries for portRetry (Windows
+// only, after ending an old bridge).
 func openPort(name string) (serial.Port, error) {
 	deadline := time.Now().Add(portRetry)
+	claimed := false
 	for {
 		ser, err := serial.Open(name, &serial.Mode{BaudRate: baudRate})
 		var pe *serial.PortError
-		if err == nil || !errors.As(err, &pe) || pe.Code() != serial.PortBusy || time.Now().After(deadline) {
+		busy := err != nil && errors.As(err, &pe) && pe.Code() == serial.PortBusy
+		if busy && !claimed {
+			claimed = true
+			if c := claimMonitor(name); c != nil {
+				mark("Serial Monitor handed over %s", name)
+				monitors.add(c)
+				continue
+			}
+		}
+		if !busy || time.Now().After(deadline) {
 			return ser, err
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -341,14 +352,13 @@ func main() {
 	}
 	mark("Arduino found on %s", name)
 
-	// A running ardudebug-monitor hands the port over and shows the
-	// sketch's Serial output during the session. Closed last, after the
-	// serial port, so the monitor can open the port again right away.
-	monitor := claimMonitor(name)
-	if monitor != nil {
-		mark("Serial Monitor handed over %s", name)
-		defer monitor.Close()
-	}
+	// A running ardudebug-monitor hands the port over (see openPort) and
+	// shows the sketch's Serial output during the session. One that the IDE
+	// opens later attaches itself. Closed last, after the serial port, so
+	// the monitors can open the port again right away.
+	ideName := name
+	monitors.listen(ideName)
+	defer monitors.closeAll()
 
 	// Opening causes a reset. The marker byte ends the bootloader and
 	// stops the stub before setup(); it acknowledges with 0x02.
@@ -408,9 +418,7 @@ func main() {
 		<-sigs
 		finish()
 		live.Close()
-		if monitor != nil {
-			monitor.Close()
-		}
+		monitors.closeAll()
 		os.Exit(0)
 	}()
 	mark("stub ready: %v", ready)
@@ -445,9 +453,7 @@ func main() {
 	input := newInputForwarder(traced{serLocked, "IN   "})
 	go input.run()
 	go readInput(os.Stdin, input)
-	if monitor != nil {
-		go readInput(monitor, input) // typed in the Serial Monitor
-	}
+	monitors.setInput(input.add) // typed in the Serial Monitor
 	resume := func() { input.setRunning(true) }
 	readyCh := make(chan struct{}, 1)
 	onReady := func() {
@@ -495,9 +501,11 @@ func main() {
 	}
 	go func() { forwardFromGDB(serOut, conn, guard, resume, reset); done <- struct{}{} }()
 	go func() {
-		forwardFiltered(traced{conn, "<-AVR"}, live, traced{teeWriter{os.Stdout, monitor}, "OUT  "}, stop, onReady)
+		forwardFiltered(traced{conn, "<-AVR"}, live, traced{teeWriter{os.Stdout}, "OUT  "}, stop, onReady)
 		done <- struct{}{}
 	}()
 	<-done
 	finish()
+	live.Close()
+	monitors.closeAll()
 }

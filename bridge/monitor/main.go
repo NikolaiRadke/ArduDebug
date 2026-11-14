@@ -198,15 +198,24 @@ func open(address, port string) error {
 		return fmt.Errorf("port already opened: %s", port)
 	}
 	p, err := serial.Open(port, mode())
+	var b net.Conn
 	if err != nil {
-		return err
+		// a debug session runs: show its output (Leonardo, see handoff)
+		if b = attach(port); b == nil {
+			return err
+		}
 	}
 	c, err := net.Dial("tcp", address)
 	if err != nil {
-		p.Close()
+		if p != nil {
+			p.Close()
+		}
+		if b != nil {
+			b.Close()
+		}
 		return err
 	}
-	portName, ser, client, isOpen = port, p, c, true
+	portName, ser, client, bridge, isOpen = port, p, c, b, true
 	// Wait for the bridge. Without the file the bridge doesn't find us; that
 	// is no reason to fail, the monitor then works like the normal one.
 	if l, err := net.Listen("tcp", "127.0.0.1:0"); err == nil {
@@ -214,9 +223,42 @@ func open(address, port string) error {
 		os.WriteFile(handoff.File(port), []byte(strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), 0o644)
 		go acceptBridge(l)
 	}
-	go fromBoard(p)
+	if p != nil {
+		go fromBoard(p)
+	} else {
+		go func() {
+			io.Copy(c, b) // the sketch's output, until the bridge closes
+			b.Close()
+			reopen(b)
+		}()
+	}
 	go fromIDE(c)
 	return nil
+}
+
+// attach connects to the bridge of a running debug session on port.
+// Returns nil if there is none.
+func attach(port string) net.Conn {
+	data, err := os.ReadFile(handoff.BridgeFile(port))
+	if err != nil {
+		return nil
+	}
+	b, err := net.DialTimeout("tcp", "127.0.0.1:"+strings.TrimSpace(string(data)), time.Second)
+	if err != nil {
+		return nil
+	}
+	b.SetDeadline(time.Now().Add(2 * time.Second))
+	answer := make([]byte, len(handoff.OK))
+	if _, err := io.WriteString(b, handoff.Attach); err != nil {
+		b.Close()
+		return nil
+	}
+	if _, err := io.ReadFull(b, answer); err != nil || string(answer) != handoff.OK {
+		b.Close()
+		return nil
+	}
+	b.SetDeadline(time.Time{})
+	return b
 }
 
 // fromBoard passes what the board sends on to the IDE. It ends quietly when
@@ -316,6 +358,10 @@ func session(b net.Conn) {
 // still hold it for a moment, and a Leonardo first restarts.
 func reopen(b net.Conn) {
 	mu.Lock()
+	if bridge != b { // from an earlier OPEN: not ours anymore
+		mu.Unlock()
+		return
+	}
 	bridge = nil
 	name := portName
 	mu.Unlock()

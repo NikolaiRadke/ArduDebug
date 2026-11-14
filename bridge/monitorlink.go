@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"ardudebug-bridge/handoff"
@@ -34,17 +37,133 @@ func claimMonitor(port string) net.Conn {
 	return c
 }
 
-// teeWriter writes to the bridge's terminal and, if there is one, to the
-// monitor. A monitor that went away doesn't stop the output.
+// monitorSet: the Serial Monitors connected during the session. Output goes
+// to all of them, input from each goes to the sketch.
+type monitorSet struct {
+	mu    sync.Mutex
+	conns []net.Conn
+	input func([]byte)
+	ln    net.Listener
+	file  string
+}
+
+var monitors = &monitorSet{}
+
+// add takes a monitor connection.
+func (m *monitorSet) add(c net.Conn) {
+	m.mu.Lock()
+	m.conns = append(m.conns, c)
+	m.mu.Unlock()
+	mark("Serial Monitor connected")
+	go func() {
+		buf := make([]byte, 256)
+		for {
+			n, err := c.Read(buf)
+			if n > 0 {
+				m.mu.Lock()
+				f := m.input
+				m.mu.Unlock()
+				if f != nil {
+					f(buf[:n])
+				}
+			}
+			if err != nil {
+				m.remove(c)
+				return
+			}
+		}
+	}()
+}
+
+func (m *monitorSet) remove(c net.Conn) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i, x := range m.conns {
+		if x == c {
+			m.conns = append(m.conns[:i], m.conns[i+1:]...)
+			c.Close()
+			return
+		}
+	}
+}
+
+// setInput sets where typed characters go.
+func (m *monitorSet) setInput(f func([]byte)) {
+	m.mu.Lock()
+	m.input = f
+	m.mu.Unlock()
+}
+
+// Write sends output to all monitors. A monitor that went away doesn't stop
+// the output.
+func (m *monitorSet) Write(p []byte) (int, error) {
+	m.mu.Lock()
+	conns := append([]net.Conn(nil), m.conns...)
+	m.mu.Unlock()
+	for _, c := range conns {
+		c.SetWriteDeadline(time.Now().Add(time.Second))
+		if _, err := c.Write(p); err != nil {
+			m.remove(c)
+		}
+	}
+	return len(p), nil
+}
+
+// listen lets a monitor that the IDE opens during the session attach itself
+// (see package handoff).
+func (m *monitorSet) listen(port string) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return
+	}
+	m.mu.Lock()
+	m.ln, m.file = ln, handoff.BridgeFile(port)
+	m.mu.Unlock()
+	os.WriteFile(m.file, []byte(strconv.Itoa(ln.Addr().(*net.TCPAddr).Port)), 0o644)
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			c.SetReadDeadline(time.Now().Add(2 * time.Second))
+			line, err := bufio.NewReader(c).ReadString('\n')
+			if err != nil || line != handoff.Attach {
+				c.Close()
+				continue
+			}
+			c.SetReadDeadline(time.Time{})
+			if _, err := io.WriteString(c, handoff.OK); err != nil {
+				c.Close()
+				continue
+			}
+			m.add(c)
+		}
+	}()
+}
+
+// closeAll ends the session for the monitors: they open the port again.
+// Call it after the serial port is closed.
+func (m *monitorSet) closeAll() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.ln != nil {
+		m.ln.Close()
+		os.Remove(m.file)
+		m.ln = nil
+	}
+	for _, c := range m.conns {
+		c.Close()
+	}
+	m.conns = nil
+}
+
+// teeWriter writes to the bridge's terminal and to the monitors.
 type teeWriter struct {
-	out     *os.File
-	monitor net.Conn
+	out *os.File
 }
 
 func (t teeWriter) Write(p []byte) (int, error) {
-	if t.monitor != nil {
-		t.monitor.SetWriteDeadline(time.Now().Add(time.Second))
-		t.monitor.Write(p)
-	}
+	monitors.Write(p)
 	return t.out.Write(p)
 }
