@@ -50,7 +50,6 @@ During a debug session the serial port belongs to the debugger. Your sketch can 
 - Each line you type ends with a newline (`\n`).
 - Input typed while the program is stopped is delivered as soon as it continues.
 - The receive buffer holds 63 characters, like the normal `Serial`.
-- The Serial Plotter is not available during debugging.
 - During a debug session the baud rate in `Serial.begin()` is ignored.
 - Without a debug session, a debug build behaves like a normal build: the Serial Monitor shows the output at the baud rate of `Serial.begin()`. So you can leave a debug build on the board.
 
