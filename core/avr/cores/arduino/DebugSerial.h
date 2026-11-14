@@ -7,8 +7,8 @@
   sends all output through the debugger instead; the ArduDebug bridge shows
   it in the gdb-server terminal of the Arduino IDE. What is typed in that
   terminal arrives in a 64 byte receive buffer, like with HardwareSerial.
-  Without a debugger (Uno, Nano, Mega), Serial works like in a normal build:
-  plain text at the rate of begin(), readable in the Serial Monitor.
+  Without a debugger, Serial works like in a normal build: plain text (Uno,
+  Nano, Mega: at the rate of begin()), readable in the Serial Monitor.
 */
 
 #ifndef DebugSerial_h

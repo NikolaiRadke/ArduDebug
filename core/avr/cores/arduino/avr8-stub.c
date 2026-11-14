@@ -414,13 +414,13 @@ static inline uint8_t debug_in_sketch(uint32_t pc_words)
 static volatile uint8_t debug_data_pad __attribute__((section(".data"))) = 1;
 static volatile uint8_t debug_bss_pad __attribute__((section(".bss")));
 
-#if !AVR8_USB_CDC
 /* ArduDebug: 1 if no debugger announced itself at the start (plain mode).
    Serial then works like in a normal build: plain text at the sketch's baud
    rate, and every received byte is input for Serial.read(). The debugger
-   resets the board when it connects, so this is decided anew each start. */
+   resets the board when it connects, so this is decided anew each start.
+   ATmega32U4: plain unless restarted for the debugger; a 0x02 still reaches
+   the stub, so a debugger can connect later (the board restarts then). */
 uint8_t debug_plain;
-#endif
 
 /* ArduDebug: receives each character typed in the gdb-server terminal.
    Called with interrupts disabled. This default drops it; DebugSerial.cpp
@@ -556,6 +556,7 @@ void debug_init(void)
 	   the bridge has opened the USB port again: stop here and wait for GDB.
 	   Otherwise the sketch just starts; the debugger can connect later. */
 	debug_usb_clear();
+	debug_plain = !debug_restarted;
 	if (debug_restarted)
 		breakpoint();
 #else
@@ -830,7 +831,17 @@ static void handle_exception(void)
 	while (1) {
 
 		b = getDebugChar();
-		
+#if AVR8_USB_CDC
+		/* ArduDebug: plain mode: typed characters are input for Serial.read().
+		   Only 0x02 (a debugger connects) is for the stub. */
+		if (debug_plain && b != 0x02) {
+			debug_rx_char(b);
+			if (!debug_usb_pending)
+				return;		/* packet read completely */
+			continue;
+		}
+#endif
+
 		switch(b) {
 		case '$':
 #if AVR8_USB_CDC
@@ -1644,6 +1655,14 @@ uint8_t debug_write(const char* buf, uint8_t len)
 	if (!debug_cdc_open())
 		return len;
 	cli();
+	/* ArduDebug: no debugger: plain text, like the core's Serial */
+	if (debug_plain) {
+		for (uint8_t i = 0; i < len; i++)
+			putDebugChar(buf[i]);
+		usb_flush();
+		SREG = cSREG;
+		return len;
+	}
 #else
 	/* ArduDebug: only the stub's own interrupts (UART receive, software
 	   interrupt) are held back while the packet goes out. All others keep
