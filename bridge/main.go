@@ -96,7 +96,9 @@ func drain(ser serial.Port) {
 	defer ser.SetReadTimeout(serial.NoTimeout)
 	buf := make([]byte, 64)
 	for deadline := time.Now().Add(100 * time.Millisecond); time.Now().Before(deadline); {
-		if n, err := ser.Read(buf); err != nil || n == 0 {
+		n, err := ser.Read(buf)
+		logData("DRAIN", buf[:n])
+		if err != nil || n == 0 {
 			return
 		}
 	}
@@ -186,12 +188,19 @@ func announce(ser io.Writer) func() {
 		defer close(done)
 		t := time.NewTicker(10 * time.Millisecond)
 		defer t.Stop()
+		sent := 0
 		for {
 			select {
 			case <-stop:
+				mark("announcement: %d marker bytes sent", sent)
 				return
 			case <-t.C:
-				ser.Write([]byte{0x02})
+				if _, err := ser.Write([]byte{0x02}); err != nil {
+					mark("announcement: write error after %d bytes: %v", sent, err)
+					<-stop
+					return
+				}
+				sent++
 			}
 		}
 	}()
@@ -229,8 +238,10 @@ func waitReady(ser serial.Port, name string) (ready, lost bool) {
 	for time.Now().Before(deadline) {
 		n, err := ser.Read(buf)
 		if err != nil {
+			mark("read error while waiting: %v", err)
 			return false, true
 		}
+		logData("WAIT ", buf[:n])
 		for _, b := range buf[:n] {
 			if b == readyMark {
 				return true, false

@@ -30,6 +30,14 @@ func (t traced) Write(p []byte) (int, error) {
 	return t.w.Write(p)
 }
 
+// logData logs data that is read and not passed on, e.g. while waiting
+// for the stub's acknowledgement.
+func logData(tag string, p []byte) {
+	if traceFile != nil && len(p) > 0 {
+		fmt.Fprintf(traceFile, "%s %s %q\n", time.Now().Format("15:04:05.000"), tag, p)
+	}
+}
+
 // mark writes a time mark to the log, to see where the time goes
 // during startup.
 func mark(format string, args ...any) {
