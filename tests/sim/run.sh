@@ -27,20 +27,23 @@ OBJ=$B/simavr/simavr/obj-$(gcc -dumpmachine)
 mkdir -p "$B/inc"; ln -sfn "$B/simavr/simavr/sim" "$B/inc/simavr"
 gcc -O2 -Wall -I"$B/inc" -I"$OBJ" -o "$B/harness" "$HERE/harness.c" "$OBJ/libsimavr.a" -lelf
 
-# debug build like the IDE does it (Optimize for Debugging, LTO on)
+# debug build like the IDE does it (Optimize for Debugging): platform.txt
+# compiles debug builds without LTO, linking keeps -flto (harmless then)
 build() {	# name sketch mcu variant board f_cpu
 	local O=$B/$1 SRC=$CORE/cores/arduino
 	rm -rf "$O"; mkdir -p "$O"
-	local FL="-c -g -Os -DARDUDEBUG -fno-optimize-sibling-calls -w -ffunction-sections -fdata-sections -flto -mmcu=$3 -DF_CPU=${6}L -DARDUINO=10819 -DARDUINO_$5 -DARDUINO_ARCH_AVR -I$SRC -I$CORE/variants/$4"
+	local FL="-c -g -Os -DARDUDEBUG -fno-optimize-sibling-calls -w -ffunction-sections -fdata-sections -mmcu=$3 -DF_CPU=${6}L -DARDUINO=10819 -DARDUINO_$5 -DARDUINO_ARCH_AVR -I$SRC -I$CORE/variants/$4"
 	for f in "$SRC"/*.c "$SRC"/*.cpp; do
 		case $f in
-		*.c) avr-gcc $FL -std=gnu11 -fno-fat-lto-objects "$f" -o "$O/$(basename "$f").o" ;;
+		*.c) avr-gcc $FL -std=gnu11 "$f" -o "$O/$(basename "$f").o" ;;
 		*) avr-g++ $FL -std=gnu++11 -fpermissive -fno-exceptions -fno-threadsafe-statics "$f" -o "$O/$(basename "$f").o" ;;
 		esac
 	done
 	avr-gcc-ar rcs "$O/core.a" "$O"/*.o
 	avr-g++ $FL -std=gnu++11 -fno-exceptions -fno-threadsafe-statics "$HERE/$2" -o "$O/sketch.o"
-	avr-gcc -w -Os -g -flto -fuse-linker-plugin -Wl,--gc-sections -mmcu=$3 -o "$O/s.elf" "$O/sketch.o" "$O/core.a" -lm
+	# like recipe.hooks.linking.prelink.1 in platform.txt: marks where the core starts
+	avr-gcc -c -mmcu=$3 -x assembler-with-cpp "$CORE/ardudebug/core_start.S" -o "$O/core_start.o"
+	avr-gcc -w -Os -g -flto -fuse-linker-plugin -Wl,--gc-sections -mmcu=$3 -o "$O/s.elf" "$O/sketch.o" "$O/core_start.o" "$O/core.a" -lm
 }
 sym() { avr-nm "$1" | awk -v s="$2" '$3 == s { sub(/^0+/, "", $1); print $1 }'; }
 
@@ -53,7 +56,7 @@ test_case() {	# name sketch mcu variant board f_cpu [high]
 	M=$(printf '%x' $((0x$M & 0xffff)))
 	# high: a second breakpoint 128 KB lower, same lower 16 bits: must not hit
 	local N=; [ "$7" = high ] && N=$(printf '%x' $((0x$T - 0x20000)))
-	LOOP_ADDR=$(sym "$E" loop) "$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
+	CORE_START=$(sym "$E" __ardudebug_core_start) "$B/harness" "$E" "$3" "$6" "$T" "$M" $N 2>/dev/null || fail=1
 }
 test_case uno        sketch.cpp      atmega328p standard AVR_UNO      16000000
 test_case pro-8mhz   sketch.cpp      atmega328p standard AVR_PRO       8000000

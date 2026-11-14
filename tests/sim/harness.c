@@ -177,8 +177,8 @@ int main(int argc, char **argv)
 	uint32_t target = strtoul(argv[4], 0, 16);
 	millis_addr = strtoul(argv[5], 0, 16);
 	uint32_t neg = argc > 6 ? strtoul(argv[6], 0, 16) : 0;
-	/* address of loop(), from the environment (run.sh) */
-	uint32_t loop_addr = getenv("LOOP_ADDR") ? strtoul(getenv("LOOP_ADDR"), 0, 16) : 0;
+	/* where the core starts (__ardudebug_core_start), from the environment (run.sh) */
+	uint32_t core_start = getenv("CORE_START") ? strtoul(getenv("CORE_START"), 0, 16) : 0;
 	/* 10 bits per byte at the stub's baud rate */
 	byte_cycles = fw.frequency * 10 / (fw.frequency >= 16000000 ? 115200 : 57600);
 
@@ -247,11 +247,12 @@ int main(int argc, char **argv)
 	check(millis() - m0 >= 480, "program runs on, millis() counts");
 	check(!strstr(rx, "$T"), "no further stop");
 
-	/* pause while running: stops at the start of loop(), not in main() */
-	if (loop_addr) {
+	/* pause while running: stops in the sketch (below the core), not in main() or the core */
+	if (core_start) {
 		rxn = 0; rx[0] = 0;
 		send("\x03");
-		check(wait_for("$T", 0.5) && stop_pc() == loop_addr, "pause stops at the start of loop()");
+		uint32_t pc = wait_for("$T", 0.5) ? stop_pc() : 0;
+		check(pc && pc < core_start, "pause stops in the sketch");
 	}
 
 	printf(failed ? "FAILED\n" : "PASSED\n");
