@@ -1,0 +1,29 @@
+# Simulator test for avr8-stub (tests/sim/run.sh): debug builds of test
+# sketches run in simavr, a small program acts as GDB. Runs on every push.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc make libelf-dev gcc-avr avr-libc
+          avr-gcc --version | head -1
+      # run.sh builds simavr only if it isn't there yet, the key is its commit
+      - name: simavr commit
+        id: simavr
+        run: echo "commit=$(sed -n 's/^SIMAVR_COMMIT=//p' tests/sim/run.sh)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: tests/sim/build/simavr
+          key: simavr-${{ runner.os }}-${{ steps.simavr.outputs.commit }}
+      - name: Simulator test
+        run: tests/sim/run.sh
