@@ -933,6 +933,13 @@ static void handle_exception(void)
 			   The bridge sends these only while the program runs, so just pass
 			   it on and let the program continue, like after '+' below. */
 			debug_rx_char(getDebugChar());
+#if AVR8_USB_CDC
+			/* ArduDebug: more of the same USB packet waits (e.g. 0x01 '1' 0x01
+			   '\n'): read it now. Nothing reports it again, the USB interrupt
+			   only comes back once the packet was read completely. */
+			if ( debug_usb_pending )
+				break;
+#endif
 			if ( gdb_ctx->target_running )
 				return;
 			break;
@@ -945,6 +952,10 @@ static void handle_exception(void)
 			Probably it would be safe to always return from here as the UART ISR would call us again when
 			another char arrives, but the GDB stub documentation above states that we should wait for
 			communication until there is command to run the target... */
+#if AVR8_USB_CDC
+			if ( debug_usb_pending )	/* ArduDebug: rest of the packet, see 0x01 */
+				break;
+#endif
 			if ( gdb_ctx->target_running ) 
 				return;				
 			break;
