@@ -35,6 +35,8 @@ export function activate(ctx: vscode.ExtensionContext) {
     command('ardudebug.selectBoard', (s) => boards.selectBoard(s)),
     command('ardudebug.selectPort', (s) => boards.selectPort(s)),
     vscode.commands.registerCommand('ardudebug.selectBaudrate', () => monitor.selectBaudrate()),
+    // Installs the board package without an open sketch (used by Agentuino)
+    vscode.commands.registerCommand('ardudebug.setup', () => cli.ensureCore()),
     vscode.window.onDidChangeActiveTextEditor(updateStatusBar),
     // After debugging the port belongs to the monitor again
     vscode.debug.onDidTerminateDebugSession((s) => {

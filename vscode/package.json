@@ -2,7 +2,7 @@
   "name": "ardudebug",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "NikolaiRadke",
   "license": "MIT",
   "repository": {
@@ -20,7 +20,8 @@
   "activationEvents": [
     "workspaceContains:**/*.ino",
     "onLanguage:cpp",
-    "onDebugResolve:ardudebug"
+    "onDebugResolve:ardudebug",
+    "onCommand:ardudebug.setup"
   ],
   "contributes": {
     "configurationDefaults": {
