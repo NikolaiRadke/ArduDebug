@@ -61,6 +61,10 @@ While the program is stopped, the **Cortex Peripherals** section of the debug si
 - `USART0` is read-only on Uno and Mega: it is the connection to the debugger.
 - Data registers like `UDR0` and `SPDR` are not shown, because reading them changes the hardware state. The USB registers of the ATmega32U4 are not shown either.
 
+## Debugging by an AI agent
+
+[Agentuino](https://github.com/NikolaiRadke/Agentuino) brings agentic coding into the Arduino IDE and VS Code, and its agent uses ArduDebug: it stops your sketch on the board at a line, reads the variables and finds the bug, without adding a single `Serial.println()`. It asks before it uploads a debug build and brings the normal sketch back when the bug is fixed. While debugging it also reads the Serial output and can send input to `Serial.read()`. In the Arduino IDE, install ArduDebug as described below; in VS Code, ArduDebug comes along with Agentuino from the Marketplace and sets up its board package itself.
+
 ## Installation
 
 ### Requirements
@@ -143,6 +147,11 @@ Updates appear in the Boards Manager. If a new version doesn't show up, the IDE 
 | `bridge` | Source of the bridge and the Serial Monitor (Go) |
 | `tests/sim` | Simulator test of the stub (simavr), runs on every push |
 | `scripts` | Build script for the Boards Manager package |
+
+## Related projects
+
+- [Agentuino](https://github.com/NikolaiRadke/Agentuino) – agentic coding for Arduino beginners; its agent debugs with ArduDebug
+- [AI.duino](https://github.com/NikolaiRadke/AI.duino) – AI support for the Arduino IDE with many providers
 
 ## License
 
