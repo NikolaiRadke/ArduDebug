@@ -1,4 +1,4 @@
-![TinyRTOS](http://www.nikolairadke.de/aiduino/ardudebug_banner_4.png)
+![ArduDebug](http://www.nikolairadke.de/aiduino/ardudebug_banner_4.png)
 # ArduDebug
 
 Breakpoint debugging for the Arduino Uno, Nano, Leonardo and many more AVR boards in the Arduino IDE 2.x, with the IDE's own debug button and **no extra hardware**, just the normal USB cable. Also available as an extension for **VS Code**, see [ArduDebug for VS Code](#ardudebug-for-vs-code). Based on Arduino AVR Boards V1.8.8.  
